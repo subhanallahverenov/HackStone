@@ -13,7 +13,7 @@ jailbreaks, data leaks, and RAG poisoning. Aligned with MITRE ATLAS standards.
 ┌─────────────────────────────────────┐
 │  SynAIpse Bank Web App (port 4000)   │  ← Full banking UI
 │  React + Node.js/Express + SQLite  │
-│  Chat powered by Groq LLM API      │
+│  Chat powered by tinyllama    │
 └─────────────────┬───────────────────┘
                   │
 ┌─────────────────▼───────────────────┐
