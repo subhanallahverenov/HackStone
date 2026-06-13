@@ -40,8 +40,7 @@ cd synaipse-bank && npm install && npm run build && node server/index.js
 ## Garak Scan
 
 ```bash
-garak --target_type rest -G garak_config.json \
-      --probes promptinject,leakreplay,dan,encoding
+garak -t rest.RestGenerator -G generator.json -p promptinject.HijackHateHumans,dan.Ablation_Dan_11_0 --generations 1 -v
 ```
 
 ---
