@@ -70,6 +70,10 @@ garak --target_type rest -G garak_config.json \
 
 ---
 
+## Reporter
+```bash
+python aegis_dashboard.py --dir "C:\Users\Student.local\share\garak\garak_runs"
+```
 ## Team
 
 **SynAIpse** — AI Security Testing | Hackathon 2026
