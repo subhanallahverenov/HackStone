@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>SynAIpse Scanner — LLM Security Report</title>
+<style>
+  :root{
+    --bg:#0a0e1a; --panel:#0e1426; --panel2:#121a30; --line:#1e2942;
+    --txt:#e6ebf5; --muted:#8a97b3; --cyan:#22d3ee; --cyan2:#38bdf8;
+    --red:#ef4444; --orange:#f59e0b; --yellow:#eab308; --green:#22c55e; --blue:#3b82f6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 600px at 70% -10%,#10182e 0%,var(--bg) 60%);
+       color:var(--txt);font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.5}
+  a{color:var(--cyan2)}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;
+          padding:10px 22px;background:#0b1120;border-bottom:1px solid var(--line);
+          position:sticky;top:0;z-index:10;font-size:12px;letter-spacing:.08em;color:var(--muted)}
+  .topbar .brand{color:var(--cyan);font-weight:700;letter-spacing:.12em}
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 22px 80px}
+  .hero{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:8px}
+  .hero h1{font-size:30px;margin:0;font-weight:800;letter-spacing:.02em}
+  .hero .sub{color:var(--muted);font-size:13px;margin-top:4px}
+  .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  button{background:var(--panel2);color:var(--txt);border:1px solid var(--line);
+          border-radius:8px;padding:8px 12px;font-size:13px;cursor:pointer}
+  button:hover{border-color:var(--cyan)}
+  .section{margin-top:34px}
+  .section-head{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  .section-num{color:var(--cyan);font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;
+        border-left:4px solid var(--cyan);padding-left:10px;line-height:1}
+  .section-title{font-size:21px;font-weight:700}
+  .panel{background:linear-gradient(180deg,var(--panel) 0%,var(--panel2) 100%);
+        border:1px solid var(--line);border-radius:14px;padding:20px}
+  .summary-grid{display:grid;grid-template-columns:200px 1fr;gap:24px;align-items:center}
+  @media(max-width:640px){.summary-grid{grid-template-columns:1fr}}
+  .donut{position:relative;width:180px;height:180px;margin:auto}
+  .donut svg{transform:rotate(-90deg)}
+  .donut .score{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .donut .score .num{font-size:46px;font-weight:800;line-height:1}
+  .donut .score .den{font-size:12px;color:var(--muted)}
+  .donut .score .grade{margin-top:6px;font-size:14px;font-weight:700;letter-spacing:.05em}
+  .headline-title{color:var(--cyan);font-weight:700;margin-bottom:8px;font-size:14px;letter-spacing:.04em}
+  .headline-text{color:#cdd6ea;font-size:14.5px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px}
+  th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:12px;letter-spacing:.05em;text-transform:uppercase}
+  tbody tr:hover{background:#101a30}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.04em;white-space:nowrap}
+  .sev-CRITICAL{background:rgba(239,68,68,.18);border:1px solid var(--red);color:var(--red)}
+  .sev-HIGH{color:var(--orange);background:rgba(245,158,11,.14);border:1px solid var(--orange)}
+  .sev-MEDIUM{color:var(--yellow);background:rgba(234,179,8,.12);border:1px solid var(--yellow)}
+  .sev-LOW{color:var(--green);background:rgba(34,197,94,.12);border:1px solid var(--green)}
+  .sev-PASS{color:var(--green);background:rgba(34,197,94,.12);border:1px solid var(--green)}
+  .prio-CRITICAL{color:var(--red);font-weight:800}
+  .prio-HIGH{color:var(--orange);font-weight:800}
+  .prio-MEDIUM{color:var(--cyan);font-weight:800}
+  .prio-LOW{color:var(--green);font-weight:800}
+  .stat-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px}
+  .stat{flex:1;min-width:120px;background:#0b1120;border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .stat .v{font-size:24px;font-weight:800}
+  .stat .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+  .about{margin-top:18px;background:#0b1120;border:1px solid var(--line);border-left:4px solid var(--cyan);
+        border-radius:10px;padding:14px 16px}
+  .about h4{margin:0 0 6px;color:var(--cyan);font-size:14px;letter-spacing:.03em}
+  .about p{margin:0 0 8px;font-size:13.5px;color:#cdd6ea}
+  .about p:last-child{margin-bottom:0}
+  .bar-row{display:grid;grid-template-columns:minmax(0,300px) 1fr 58px 118px;gap:16px;align-items:center;
+        padding:12px 16px;border:1px solid var(--line);border-radius:10px;margin-bottom:10px;background:#0b1120}
+  .bar-label{min-width:0;overflow:hidden}
+  .bar-label .p{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bar-label .a{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bar-track{height:16px;background:#1a2440;border-radius:8px;overflow:hidden;min-width:0}
+  .bar-fill{height:100%;border-radius:8px}
+  .bar-pct{font-weight:800;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+  .bar-frac{color:var(--muted);font-size:12px;text-align:right;white-space:nowrap;display:flex;
+        align-items:center;justify-content:flex-end;gap:8px}
+  @media(max-width:680px){
+    .bar-row{grid-template-columns:1fr auto;row-gap:8px}
+    .bar-track{grid-column:1 / -1;order:5}
+    .bar-label{grid-column:1 / -1}
+  }
+  .finding{border:1px solid var(--line);border-radius:12px;margin-top:16px;overflow:hidden}
+  .finding>summary{cursor:pointer;list-style:none;padding:14px 16px;background:#101a30;
+        display:flex;align-items:center;gap:12px;justify-content:space-between}
+  .finding>summary::-webkit-details-marker{display:none}
+  .finding .ftitle{color:var(--cyan);font-weight:700;font-size:15px}
+  .finding .fbody{padding:6px 16px 18px}
+  .kv{display:grid;grid-template-columns:160px 1fr;gap:0}
+  .kv>div{padding:9px 10px;border-bottom:1px solid var(--line);font-size:13.5px;min-width:0;word-break:break-word}
+  .kv .k{color:var(--muted)}
+  .codeblk{background:#070b16;border:1px solid var(--line);border-radius:8px;padding:12px;
+        font-family:'Cascadia Code',Consolas,'Courier New',monospace;font-size:12.5px;
+        white-space:pre-wrap;word-break:break-word;color:#cdd6ea;margin-top:6px}
+  .lbl{color:var(--muted);font-size:12px;margin-top:14px}
+  .resp-hit{color:var(--red);font-weight:600}
+  .foot{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:12px;text-align:center}
+  .updated{color:var(--muted);font-size:12px}
+  @media print{.controls{display:none}.topbar{position:static}body{background:#0a0e1a}}
+
+
+/* === SynAIpse professional polish layer === */
+:root{--syn-bg:#041210;--syn-panel:#08231f;--syn-panel2:#0b2b27;--syn-line:#16443f;--syn-lime:#c7ff4d;--syn-green:#00c983;--syn-red:#ff1654;--syn-amber:#ffbd2e;--syn-text:#e8fffa;--syn-muted:#8db1ab;--syn-shadow:0 22px 70px rgba(0,0,0,.32)}
+body{background:radial-gradient(circle at 12% 0%,rgba(199,255,77,.10),transparent 32%),radial-gradient(circle at 92% 8%,rgba(0,201,131,.10),transparent 25%),linear-gradient(180deg,#041210,#061918 45%,#030d0c)!important;color:var(--syn-text)!important;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif!important}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(199,255,77,.028) 1px,transparent 1px),linear-gradient(90deg,rgba(199,255,77,.022) 1px,transparent 1px);background-size:38px 38px;opacity:.65;mask-image:linear-gradient(to bottom,black,transparent 96%);z-index:-1}
+.header,.topbar,header{background:rgba(5,24,23,.76)!important;border:1px solid rgba(160,255,210,.12)!important;border-radius:18px!important;backdrop-filter:blur(18px);box-shadow:0 16px 45px rgba(0,0,0,.18)}
+.panel,.card,.section,.finding,.bar-row,details{background:rgba(8,35,32,.86)!important;border-color:var(--syn-line)!important;box-shadow:var(--syn-shadow)!important;border-radius:12px!important}
+.section-head,.section-title,h1,h2,h3,h4{color:#eafffa!important;letter-spacing:-.025em}.section-num{color:var(--syn-lime)!important}.muted,.sub,.small,.k,.bar-label.a,p{color:var(--syn-muted)!important}.pill{border-radius:999px!important}.sev-CRITICAL,.sev-HIGH,.prio-CRITICAL,.prio-HIGH{background:rgba(255,22,84,.14)!important;color:#ff9bb1!important}.sev-MEDIUM,.prio-MEDIUM{background:rgba(255,189,46,.14)!important;color:#ffd172!important}.sev-LOW,.sev-PASS,.prio-LOW{background:rgba(0,201,131,.15)!important;color:#4dffb7!important}.stat,.codeblk,pre,table{background:#061b19!important;border-color:var(--syn-line)!important;border-radius:10px!important}th{color:#9fc6c0!important}td{border-color:rgba(22,68,63,.8)!important}.btn,button{border-radius:10px!important}.btn-primary,#print{background:linear-gradient(135deg,var(--syn-lime),var(--syn-green))!important;color:#041210!important;border:0!important;font-weight:800!important}.bar-fill{background:linear-gradient(90deg,var(--syn-red),var(--syn-amber),var(--syn-green))!important}.resp-hit{border-color:rgba(255,22,84,.35)!important}
+@media print{body{background:#fff!important;color:#111!important}body:before{display:none}.panel,.card,.section,.finding{box-shadow:none!important}}
+
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <span class="brand">◆ SynAIpse Scanner</span>
+    <span>CONFIDENTIAL — FOR AUTHORIZED USE ONLY</span>
+    <span class="updated" id="updated"></span>
+  </div>
+  <div class="wrap">
+    <div class="hero">
+      <div>
+        <h1>SynAIpse — LLM Security Assessment</h1>
+        <div class="sub" id="meta-sub"></div>
+      </div>
+      <div class="controls">
+        <button id="print">⎙ Print / PDF</button>
+      </div>
+    </div>
+    <div id="app"></div>
+    <div class="foot">Generated by SynAIpse Scanner from automated garak testing. Findings are produced by automated probes — verify with a qualified security professional.</div>
+  </div>
+
+<script>
+/* =====================================================================
+   Report data is injected by the SynAIpse Scanner backend at request
+   time, parsed from the garak .report.jsonl for the selected run.
+   ===================================================================== */
+const DATA = __REPORT_DATA__;
+
+const SEV_COLOR = {CRITICAL:'#ef4444',HIGH:'#f59e0b',MEDIUM:'#eab308',LOW:'#22c55e',PASS:'#22c55e'};
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+function donut(score,grade){
+  const R=78, C=2*Math.PI*R, pct=Math.max(0,Math.min(100,score))/100;
+  const col = score>=80?'#22c55e':score>=60?'#eab308':score>=40?'#f59e0b':'#ef4444';
+  const off = C*(1-pct);
+  return `<div class="donut"><svg width="180" height="180" viewBox="0 0 180 180">
+    <circle cx="90" cy="90" r="${R}" fill="none" stroke="#1a2440" stroke-width="14"/>
+    <circle cx="90" cy="90" r="${R}" fill="none" stroke="${col}" stroke-width="14"
+        stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${off}"/>
+  </svg><div class="score"><div class="num" style="color:${col}">${score}</div>
+    <div class="den">/ 100</div><div class="grade">Grade ${esc(grade)}</div></div></div>`;
+}
+function sectionHead(num,title){
+  return `<div class="section-head"><span class="section-num">${num}</span><span class="section-title">${esc(title)}</span></div>`;
+}
+
+function render(data){
+  const app=document.getElementById('app');
+  const m=data.meta, s=data.summary;
+  const maxHit = (data.findings||[]).reduce((a,f)=>Math.max(a,f.hit_pct||0),0);
+  const gradeCol = s.score>=80?'#22c55e':s.score>=60?'#eab308':s.score>=40?'#f59e0b':'#ef4444';
+  document.getElementById('meta-sub').innerHTML =
+    `Target: <b>${esc(m.model)}</b> &nbsp;•&nbsp; Garak ${esc(m.garak_version)} &nbsp;•&nbsp; ${m.probe_count} probes &nbsp;•&nbsp; ${esc(m.generations)} generations`;
+  document.getElementById('updated').textContent = 'Run: ' + (m.start_time||'');
+  let h='';
+
+  // 01 Executive Summary
+  h += `<div class="section">${sectionHead('01','Executive Summary')}<div class="panel">
+    <div class="summary-grid">
+      <div>${donut(s.score,s.grade)}</div>
+      <div>
+        <div class="headline-title">OVERALL ASSESSMENT</div>
+        <div class="headline-text">The target <b>${esc(m.model)}</b> was assessed with Garak ${esc(m.garak_version)} across <b>${s.total_probes}</b> probe(s). Attacks succeeded in <b>${s.total_hits}</b> of <b>${s.total_attempts}</b> attempts, with the weakest probe reaching a <b style="color:${gradeCol}">${maxHit}%</b> hit rate. Overall resilience score: <b>${s.score}/100 (Grade ${esc(s.grade)})</b>.</div>
+        <div class="stat-row">
+          <div class="stat"><div class="v">${s.total_probes}</div><div class="l">Probes</div></div>
+          <div class="stat"><div class="v">${s.total_attempts}</div><div class="l">Attempts</div></div>
+          <div class="stat"><div class="v" style="color:#ef4444">${s.total_hits}</div><div class="l">Hits</div></div>
+          <div class="stat"><div class="v" style="color:${gradeCol}">${s.resilience_pct}%</div><div class="l">Resilience</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="about">
+      <h4>${esc(data.about.title)}</h4>
+      ${data.about.paragraphs.map(p=>`<p>${esc(p)}</p>`).join('')}
+    </div>
+    <table><thead><tr><th>Finding</th><th>Hit Rate</th><th>Severity</th><th>Framework</th></tr></thead><tbody>
+      ${data.findings.map(f=>`<tr>
+        <td><b>${esc(f.probe)}</b><br><span class="bar-label a">${esc(f.atlas_technique)}</span></td>
+        <td>${f.hit_pct}%</td>
+        <td><span class="pill sev-${f.severity}">${f.severity}</span></td>
+        <td><span class="bar-label a">${esc(f.atlas_id)} / ${esc(f.owasp)}</span></td>
+      </tr>`).join('')}
+    </tbody></table>
+  </div></div>`;
+
+  // 02 Vulnerability Findings
+  h += `<div class="section">${sectionHead('02','Vulnerability Findings')}`;
+  h += data.findings.map(f=>{
+    const col=SEV_COLOR[f.severity]||'#888';
+    return `<div class="bar-row">
+      <div class="bar-label"><div class="p" title="${esc(f.probe)}">${esc(f.probe)}</div><div class="a">${esc(f.atlas_id)}</div></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${f.hit_pct}%;background:${col}"></div></div>
+      <div class="bar-pct" style="color:${col}">${f.hit_pct}%</div>
+      <div class="bar-frac"><span>${f.hits}/${f.total}</span><span class="pill sev-${f.severity}">${f.severity}</span></div>
+    </div>`;
+  }).join('');
+  h += data.findings.map((f,i)=>`<details class="finding" ${i===0?'open':''}>
+    <summary><span class="ftitle">Finding Detail — ${esc(f.probe)}</span>
+      <span class="pill sev-${f.severity}">${f.severity}</span></summary>
+    <div class="fbody">
+      <div class="kv">
+        <div class="k">ATLAS ID</div><div>${esc(f.atlas_id)} — ${esc(f.atlas_technique)}</div>
+        <div class="k">OWASP</div><div>${esc(f.owasp)} — ${esc(f.owasp_name)}</div>
+        <div class="k">Detector</div><div>${esc(f.detector||'—')}</div>
+        <div class="k">Hit Rate</div><div>${f.hit_pct}% (${f.hits} of ${f.total} attempts)</div>
+        <div class="k">Severity</div><div><span class="pill sev-${f.severity}">${f.severity}</span></div>
+        <div class="k">Description</div><div>${esc(f.description)}</div>
+      </div>
+      ${f.goal?`<div class="lbl">Attack Goal:</div><div class="codeblk">${esc(f.goal)}</div>`:''}
+      ${f.payload?`<div class="lbl">Example Attack Payload:</div><div class="codeblk">${esc(f.payload)}</div>`:''}
+      ${f.response?`<div class="lbl">Model Response (hit):</div><div class="codeblk resp-hit">${esc(f.response)}</div>`:''}
+    </div>
+  </details>`).join('');
+  h += `</div>`;
+
+  // 03 MITRE ATLAS Mapping
+  h += `<div class="section">${sectionHead('03','MITRE ATLAS Framework Mapping')}<div class="panel">
+    <table><thead><tr><th>Probe Family</th><th>ATLAS ID</th><th>Technique</th><th>OWASP</th><th>Tactic</th><th>Max Severity</th></tr></thead><tbody>
+    ${data.atlas_mapping.map(a=>`<tr>
+      <td><b>${esc(a.probe_family)}</b></td><td>${esc(a.atlas_id)}</td><td>${esc(a.technique)}</td>
+      <td>${esc(a.owasp)}</td><td>${esc(a.tactic)}</td>
+      <td><span class="pill sev-${a.max_severity}">${a.max_severity}</span></td>
+    </tr>`).join('')}
+    </tbody></table></div></div>`;
+
+  // 04 Recommendations
+  h += `<div class="section">${sectionHead('04','Recommendations')}<div class="panel">
+    <table><thead><tr><th>#</th><th>Recommendation</th><th>Priority</th><th>Effort</th></tr></thead><tbody>
+    ${data.recommendations.map(r=>`<tr>
+      <td><b>${esc(r.id)}</b></td><td>${esc(r.text)}</td>
+      <td><span class="prio-${r.priority}">${r.priority}</span></td><td>${esc(r.effort)}</td>
+    </tr>`).join('')}
+    </tbody></table></div></div>`;
+
+  app.innerHTML=h;
+}
+
+document.getElementById('print').addEventListener('click',()=>window.print());
+render(DATA);
+</script>
+</body>
+</html>

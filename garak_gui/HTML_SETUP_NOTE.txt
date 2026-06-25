@@ -1,0 +1,19 @@
+SynAIpse corrected HTML package
+
+Files used by garak_gui.py:
+- index.html: one professional flow with homepage -> admin login -> existing dashboard/scanner.
+- report_template.html: polished full report.
+- compare_template.html: polished before/after Aegis comparison.
+- history_template.html: polished scan history.
+
+Login credentials:
+- username: admin
+- password: admin
+
+homepage_reference.html is only a standalone landing-page reference. The active homepage is already integrated inside index.html.
+
+Run as usual from the project root:
+1-setup-garak.bat
+2-run-vuln-chatbot.bat
+4-run-garak-gui.bat
+Then open http://127.0.0.1:8800

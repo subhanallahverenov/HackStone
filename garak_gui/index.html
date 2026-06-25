@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SynAIpse Scanner — LLM Red-Team Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0c0d11; --bg-elev:#101218; --panel:#13151d; --panel2:#1a1d27;
+  --border:#23262f; --border2:#30343f;
+  --text:#eceae3; --muted:#9298a6; --faint:#5f6675;
+  --accent:#c7f24c; --accent-deep:#aad636; --accent-ink:#10130a;
+  --green:#45d6a0; --yellow:#f0bf52; --orange:#f9904a; --red:#ff6f6b;
+  --console-bg:#080a0d; --console-tx:#c2cad8;
+  --shadow:0 20px 50px rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:'Hanken Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  background:
+    radial-gradient(900px 480px at 92% -8%,rgba(199,242,76,.07),transparent 60%),
+    radial-gradient(700px 420px at 0% 4%,rgba(69,214,160,.05),transparent 55%),
+    var(--bg);
+  color:var(--text); min-height:100vh; line-height:1.55;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+a{color:var(--accent);text-decoration:none}
+.mono{font-family:'JetBrains Mono','Fira Code',Consolas,Monaco,monospace}
+h1,h2,h3{font-family:'Fraunces','Hanken Grotesk',Georgia,serif}
+::selection{background:rgba(199,242,76,.28);color:#fff}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:#2a2e3a;border-radius:6px;border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:#3a3f4d;background-clip:padding-box}
+
+/* Header */
+.topbar{
+  position:sticky;top:0;z-index:50;backdrop-filter:blur(16px) saturate(1.3);
+  background:rgba(12,13,17,.82);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:14px;padding:15px 28px;
+}
+.logo{display:flex;align-items:center;gap:13px}
+.logo .mark{
+  width:38px;height:38px;border-radius:11px;display:grid;place-items:center;flex:none;
+  background:linear-gradient(150deg,#1c2030,#11131b);border:1px solid #2c3242;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 8px 18px rgba(0,0,0,.4);
+}
+.logo .wm{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:23px;letter-spacing:-.3px;line-height:1}
+.logo .wm b{color:var(--accent);font-weight:600}
+.logo .wm em{font-style:normal;color:var(--muted);font-weight:500}
+.logo small{display:block;font-family:'Hanken Grotesk',sans-serif;font-weight:600;font-size:10px;color:var(--faint);letter-spacing:2.4px;text-transform:uppercase;margin-top:5px}
+.topbar .spacer{flex:1}
+.pill{font-size:12px;font-weight:600;color:var(--muted);border:1px solid var(--border2);border-radius:999px;padding:6px 13px;background:var(--panel)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--faint);margin-right:8px;vertical-align:middle}
+.dot.live{background:var(--accent);box-shadow:0 0 0 0 rgba(199,242,76,.55);animation:pulse 1.5s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(199,242,76,.5)}70%{box-shadow:0 0 0 9px rgba(199,242,76,0)}100%{box-shadow:0 0 0 0 rgba(199,242,76,0)}}
+
+.nav{position:fixed;left:0;top:0;bottom:0;width:228px;z-index:60;display:flex;flex-direction:column;padding:20px 12px;gap:1px;background:#0b0c10;border-right:1px solid var(--border);overflow-y:auto}
+.nav-brand{display:flex;align-items:center;gap:10px;padding:4px 10px 18px}
+.nav-mark{width:30px;height:30px;display:grid;place-items:center;border-radius:8px;background:rgba(199,242,76,.07);border:1px solid rgba(199,242,76,.18)}
+.nav-brandtext{font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:600;letter-spacing:-.2px;color:var(--text)}
+.nav-brandtext b{font-weight:600}
+.nav-sec{font-size:10.5px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--faint);padding:16px 12px 7px}
+.nav-item{position:relative;display:flex;align-items:center;gap:11px;padding:8px 11px 8px 13px;border-radius:7px;color:var(--muted);font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;text-decoration:none;transition:background .14s,color .14s;-webkit-user-select:none;user-select:none}
+.nav-item:hover{background:rgba(255,255,255,.04);color:var(--text)}
+.nav-item.active{background:rgba(255,255,255,.055);color:var(--text)}
+.nav-item.active::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:2.5px;border-radius:0 3px 3px 0;background:var(--accent)}
+.nav-item .ni-ic{width:17px;height:17px;flex:0 0 auto;color:var(--faint);display:inline-flex;align-items:center;justify-content:center}
+.nav-item .ni-ic svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.nav-item:hover .ni-ic{color:var(--muted)}
+.nav-item.active .ni-ic{color:var(--accent)}
+.nav-item.disabled{opacity:.36;cursor:default}
+.nav-item.disabled:hover{background:transparent;color:var(--muted)}
+.nav-item.disabled:hover .ni-ic{color:var(--faint)}
+.nav-spacer{flex:1;min-height:14px}
+.nav-foot{padding:12px 12px 2px;border-top:1px solid var(--border);margin-top:8px}
+.nav-cred{font-size:10.5px;color:var(--faint);letter-spacing:.02em}
+.appmain{margin-left:228px}
+@media(max-width:1060px){
+  .nav{width:60px;padding:18px 8px}
+  .nav .ni-tx,.nav-sec,.nav-brandtext,.nav-cred{display:none}
+  .nav-item{justify-content:center;padding:10px 0;gap:0}
+  .nav-item.active::before{left:-8px}
+  .nav-foot{display:none}
+  .appmain{margin-left:60px}
+}
+.wrap{max-width:1340px;margin:0 auto;padding:28px;display:grid;grid-template-columns:384px 1fr;gap:24px;align-items:start}
+@media(max-width:1060px){.wrap{grid-template-columns:1fr}}
+
+.card{background:linear-gradient(180deg,var(--panel),var(--bg-elev));border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow)}
+.card .hd{display:flex;align-items:center;gap:11px;padding:16px 19px;border-bottom:1px solid var(--border)}
+.card .hd h2{margin:0;font-family:'Hanken Grotesk',sans-serif;font-size:12px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:10px}
+.card .hd h2::before{content:"";width:3px;height:14px;border-radius:2px;background:var(--accent);display:inline-block}
+.card .bd{padding:19px}
+
+.left{position:sticky;top:88px;display:flex;flex-direction:column;gap:24px}
+@media(max-width:1060px){.left{position:static}}
+
+/* Form */
+label.fl{display:block;font-size:11px;font-weight:600;color:var(--muted);margin:0 0 6px;letter-spacing:.4px;text-transform:uppercase}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px}
+.field{margin-bottom:14px}
+input,select{
+  width:100%;background:#0e1016;border:1px solid var(--border2);color:var(--text);
+  border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit;outline:none;transition:border .15s,box-shadow .15s;
+}
+input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(199,242,76,.16)}
+input::placeholder{color:var(--faint)}
+select{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M3 4.5L6 7.5L9 4.5' stroke='%239298a6' stroke-width='1.4' fill='none' stroke-linecap='round'/></svg>");background-repeat:no-repeat;background-position:right 11px center;padding-right:30px}
+.hint{font-size:11.5px;color:var(--faint);margin-top:6px}
+.hint .mono{color:var(--muted)}
+.switch{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text);cursor:pointer;user-select:none;margin-top:2px}
+.switch input{width:auto;accent-color:var(--accent-deep)}
+
+.btn{
+  border:none;border-radius:11px;padding:12px 16px;font-size:13.5px;font-weight:700;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .08s,filter .15s,background .15s,border-color .15s;
+  font-family:'Hanken Grotesk',sans-serif;letter-spacing:.2px;
+}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--accent);color:var(--accent-ink);box-shadow:0 10px 22px rgba(199,242,76,.20)}
+.btn-primary:hover{filter:brightness(1.06)}
+.btn-ghost{background:transparent;color:var(--text);border:1px solid var(--border2)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn-danger{background:rgba(255,111,107,.12);color:var(--red);border:1px solid rgba(255,111,107,.42)}
+.btn-danger:hover{background:rgba(255,111,107,.2)}
+.btn-ab{background:linear-gradient(120deg,#8b7bff,#c7f24c);color:#0c0d11;font-weight:800;box-shadow:0 10px 22px rgba(139,123,255,.24)}
+.btn-ab:hover{filter:brightness(1.07)}
+.btn[disabled]{opacity:.4;cursor:not-allowed;filter:grayscale(.4)}
+.btn-block{width:100%}
+.actions{display:flex;gap:10px;margin-top:12px}
+
+/* Probes */
+.probe-toolbar{display:flex;gap:10px;align-items:center;margin-bottom:15px;flex-wrap:wrap}
+.probe-toolbar input[type=text]{flex:1;min-width:170px}
+.selcount{font-size:12px;color:var(--muted);font-weight:600}
+.selcount b{color:var(--accent);font-family:'JetBrains Mono',monospace}
+.tag-mini{font-size:11.5px;font-weight:600;padding:6px 11px;border-radius:999px;border:1px solid var(--border2);background:var(--panel);color:var(--muted);cursor:pointer;transition:.15s;user-select:none}
+.tag-mini:hover{border-color:var(--accent);color:var(--text)}
+.tag-mini.on{background:rgba(199,242,76,.13);border-color:var(--accent);color:var(--accent)}
+
+.cat{border:1px solid var(--border);border-radius:13px;margin-bottom:11px;overflow:hidden;background:#0f111801}
+.cat-hd{display:flex;align-items:center;gap:13px;padding:13px 15px;cursor:pointer;user-select:none;transition:background .15s}
+.cat-hd:hover{background:var(--panel2)}
+.cat-ic{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;font-size:18px;background:#0e1016;border:1px solid var(--border2);flex:none}
+.cat-meta{flex:1;min-width:0}
+.cat-meta .nm{font-weight:700;font-size:14.5px;display:flex;align-items:center;gap:9px}
+.cat-meta .ds{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.owasp{font-size:9.5px;font-weight:700;letter-spacing:.6px;color:var(--accent);border:1px solid rgba(199,242,76,.32);border-radius:5px;padding:2px 6px;background:rgba(199,242,76,.06)}
+.cat-count{font-size:11.5px;color:var(--faint);margin-right:6px;font-family:'JetBrains Mono',monospace}
+.cat-count b{color:var(--accent)}
+.chev{color:var(--faint);transition:transform .2s;font-size:18px}
+.cat.open .chev{transform:rotate(90deg)}
+.cat-bd{display:none;padding:4px 12px 12px;border-top:1px solid var(--border)}
+.cat.open .cat-bd{display:block}
+.cat-tools{display:flex;gap:9px;align-items:center;padding:11px 2px}
+.linklike{font-size:11.5px;font-weight:600;color:var(--accent);cursor:pointer;background:none;border:none;padding:0;font-family:inherit}
+.linklike:hover{text-decoration:underline}
+.linklike.sep{color:var(--faint);cursor:default}
+
+.probe{display:flex;align-items:center;gap:11px;padding:8px 9px;border-radius:9px;transition:background .12s}
+.probe:hover{background:var(--panel2)}
+.probe input{width:auto;margin:0;accent-color:var(--accent-deep)}
+.probe .pn{font-size:12.5px;font-family:'JetBrains Mono',Consolas,monospace;color:var(--text)}
+.probe .pn .sub{color:var(--accent-deep)}
+.badge{font-size:9px;letter-spacing:.7px;text-transform:uppercase;padding:3px 8px;border-radius:999px;font-weight:700}
+.badge.fast{background:rgba(69,214,160,.13);color:var(--green)}
+.badge.slow{background:rgba(240,191,82,.12);color:var(--yellow)}
+.probe .grow{flex:1}
+
+/* Console */
+.console{
+  background:var(--console-bg);border:1px solid #161a24;border-radius:13px;
+  font-family:'JetBrains Mono',Consolas,monospace;font-size:12.5px;line-height:1.6;
+  padding:15px 17px;height:344px;overflow:auto;white-space:pre-wrap;word-break:break-word;color:var(--console-tx);
+  box-shadow:inset 0 2px 24px rgba(0,0,0,.5);
+}
+.console .l-err{color:var(--red)}
+.console .l-warn{color:var(--yellow)}
+.console .l-ok{color:var(--accent)}
+.console .l-info{color:#7fd6c6}
+.console .l-trace{color:var(--faint)}
+.console-empty{color:var(--faint);font-style:italic}
+/* ---- live progress bar ---- */
+.progwrap{margin:0 0 14px;padding:14px 16px;border-radius:14px;background:linear-gradient(180deg,#0f1320,#0b0e17);border:1px solid #20283a;box-shadow:0 6px 22px rgba(0,0,0,.35)}
+.prog-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:9px}
+.prog-label{font-size:12.5px;color:#9aa3b2;letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.prog-pct{font-size:23px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;background:linear-gradient(90deg,#34e0c4,#5bc8ff,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 18px rgba(91,200,255,.25)}
+.prog-track{position:relative;height:14px;border-radius:99px;background:#0a0d16;box-shadow:inset 0 1px 3px rgba(0,0,0,.7),inset 0 0 0 1px #1b2333;overflow:hidden}
+.prog-fill{position:relative;height:100%;border-radius:99px;width:0;background:linear-gradient(90deg,#15b89a,#2bd4c0,#4cc9ff,#8b7dfb,#15b89a);background-size:300% 100%;animation:progflow 3s linear infinite;box-shadow:0 0 14px rgba(76,201,255,.55),0 0 26px rgba(139,125,251,.35);transition:width .6s cubic-bezier(.22,.61,.36,1)}
+.prog-shine{position:absolute;inset:0;border-radius:99px;background:repeating-linear-gradient(45deg,rgba(255,255,255,.16) 0,rgba(255,255,255,.16) 10px,transparent 10px,transparent 22px);background-size:44px 100%;animation:progstripes 1s linear infinite;mix-blend-mode:overlay}
+.prog-knob{position:absolute;top:50%;right:-1px;width:16px;height:16px;transform:translateY(-50%);border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff,#bfe9ff 40%,#5bc8ff 72%);box-shadow:0 0 10px #5bc8ff,0 0 22px rgba(91,200,255,.7)}
+.progwrap.done .prog-fill{background:linear-gradient(90deg,#16b87f,#33d68a);animation:none;box-shadow:0 0 16px rgba(51,214,138,.6)}
+.progwrap.done .prog-shine,.progwrap.done .prog-knob{display:none}
+.progwrap.done .prog-pct{background:linear-gradient(90deg,#33d68a,#7ef0b4);-webkit-background-clip:text;background-clip:text}
+@keyframes progflow{0%{background-position:0 0}100%{background-position:300% 0}}
+@keyframes progstripes{0%{background-position:0 0}100%{background-position:44px 0}}
+
+.cmdbox{background:var(--console-bg);border:1px solid #161a24;border-radius:11px;padding:12px 14px;font-family:'JetBrains Mono',Consolas,monospace;font-size:12px;color:var(--accent);overflow:auto;white-space:pre-wrap;word-break:break-word;box-shadow:inset 0 2px 18px rgba(0,0,0,.45)}
+
+/* Results */
+.score-wrap{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+.gauge{position:relative;width:124px;height:124px;border-radius:50%;display:grid;place-items:center;flex:none}
+.gauge .inner{position:absolute;inset:12px;background:var(--bg-elev);border-radius:50%;display:grid;place-items:center;text-align:center}
+.gauge .num{font-family:'Fraunces',serif;font-size:34px;font-weight:700;line-height:1}
+.gauge .lbl{font-size:9.5px;letter-spacing:1.4px;color:var(--muted);text-transform:uppercase;margin-top:3px;font-weight:600}
+.score-meta{flex:1;min-width:220px}
+.score-meta .big{font-family:'Fraunces',serif;font-size:21px;font-weight:600;margin-bottom:4px}
+.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-top:16px}
+.smini{background:#0e1016;border:1px solid var(--border);border-radius:11px;padding:12px 13px;text-align:center}
+.smini .v{font-family:'Fraunces',serif;font-size:23px;font-weight:700;line-height:1}
+.smini .k{font-size:10.5px;color:var(--muted);margin-top:5px;letter-spacing:.3px}
+
+.res-row{display:flex;align-items:center;gap:13px;padding:12px 13px;border:1px solid var(--border);border-radius:12px;margin-bottom:9px;background:#0e1016}
+.res-row .pmeta{flex:1;min-width:0}
+.res-row .pname{font-family:'JetBrains Mono',Consolas,monospace;font-size:13px;font-weight:500;color:var(--text)}
+.res-row .pdet{font-size:11px;color:var(--muted);margin-top:2px}
+.bar{width:144px;height:8px;border-radius:999px;background:#1c2029;overflow:hidden;flex:none}
+.bar > i{display:block;height:100%;border-radius:999px}
+.res-stat{font-size:12px;color:var(--muted);width:92px;text-align:right;flex:none;font-family:'JetBrains Mono',monospace}
+.res-tag{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;padding:5px 9px;border-radius:7px;width:62px;text-align:center;flex:none}
+.t-pass{background:rgba(69,214,160,.14);color:var(--green)}
+.t-low{background:rgba(240,191,82,.14);color:var(--yellow)}
+.t-high{background:rgba(255,111,107,.16);color:var(--red)}
+
+.empty{color:var(--faint);text-align:center;padding:34px 12px;font-size:13px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--border2);color:var(--text);padding:12px 20px;border-radius:11px;box-shadow:var(--shadow);font-size:13px;font-weight:600;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;z-index:99}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(-5px)}
+.toast.err{border-color:var(--red);color:#ffd3d1}
+.modal-ov{position:fixed;inset:0;background:rgba(6,7,10,.72);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:90;padding:24px}
+.modal-ov.show{display:flex}
+.modal{width:min(660px,100%);max-height:82vh;display:flex;flex-direction:column;background:linear-gradient(180deg,var(--panel),var(--bg-elev));border:1px solid var(--border2);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+.modal-hd{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);font-family:'Fraunces',serif;font-weight:600;font-size:18px}
+.modal-x{background:none;border:none;color:var(--muted);font-size:17px;cursor:pointer;padding:4px 9px;border-radius:8px;line-height:1}
+.modal-x:hover{color:var(--text);background:var(--panel2)}
+.modal-bd{padding:16px 20px;overflow:auto}
+.rp-modal{width:min(820px,100%)}
+.rp-bd{padding:0}
+.rp-stage{padding:20px 22px;background:radial-gradient(1200px 400px at 50% -10%,rgba(124,92,255,.10),transparent 60%)}
+.rp-meta{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.rp-sev{font-size:11px;font-weight:800;letter-spacing:.05em;padding:3px 9px;border-radius:999px;background:#3a2030;color:#ff7597;border:1px solid #5a2a3c}
+.rp-title{font-family:'Fraunces',serif;font-size:19px;font-weight:600}
+.rp-count{margin-left:auto;color:var(--muted);font-size:12px}
+.rp-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.rp-tags span{font-size:11px;padding:2px 8px;border-radius:6px;background:var(--panel2);color:var(--muted);border:1px solid var(--border)}
+.rp-scene{display:flex;flex-direction:column;gap:10px}
+.rp-row{display:flex;gap:10px;align-items:flex-start;opacity:0;transform:translateY(8px);transition:opacity .4s,transform .4s}
+.rp-row.in{opacity:1;transform:none}
+.rp-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:19px;flex:0 0 auto;border:1px solid var(--border2)}
+.rp-att{background:#2a1622}
+.rp-vic{background:#101a2a}
+.rp-bubble{flex:1;border-radius:12px;padding:10px 13px;border:1px solid var(--border2);background:var(--panel)}
+.rp-att-bubble{border-color:#5a2a3c}
+.rp-vic-bubble{border-color:#27406a}
+.rp-who{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+.rp-text{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word;min-height:18px}
+.rp-text .caret{display:inline-block;width:7px;background:var(--accent);animation:rpblink 1s steps(1) infinite;margin-left:1px}
+@keyframes rpblink{50%{opacity:0}}
+.rp-leak{background:linear-gradient(180deg,rgba(255,90,120,.28),rgba(255,90,120,.12));color:#ff97ad;border-radius:4px;padding:0 3px;font-weight:700;box-shadow:0 0 0 1px rgba(255,90,120,.35)}
+.rp-arrow{display:flex;align-items:center;gap:8px;justify-content:center;color:var(--muted);font-size:12px;opacity:0;transition:opacity .4s}
+.rp-arrow.in{opacity:1}
+.rp-packet{display:inline-block;color:var(--accent);animation:rpflow 1.1s linear infinite}
+@keyframes rpflow{0%{transform:translateX(-7px);opacity:.2}50%{opacity:1}100%{transform:translateX(7px);opacity:.2}}
+.rp-think{color:var(--accent);font-weight:600;text-transform:none;letter-spacing:0;margin-left:6px}
+.rp-think.hide{display:none}
+.rp-verdict{margin-top:16px;border-radius:12px;padding:13px 15px;background:linear-gradient(180deg,rgba(255,90,120,.10),transparent);border:1px solid #4a2336;opacity:0;transform:translateY(8px);transition:opacity .5s,transform .5s}
+.rp-verdict.in{opacity:1;transform:none}
+.rp-verdict.safe{background:linear-gradient(180deg,rgba(60,210,150,.10),transparent);border-color:#1f5a45}
+.rp-verdict-hd{display:flex;align-items:center;gap:9px;font-weight:600;margin-bottom:7px}
+.rp-vbadge{font-size:11px;font-weight:800;letter-spacing:.06em;padding:3px 9px;border-radius:6px;background:#ff5a78;color:#1a0a10}
+.rp-verdict.safe .rp-vbadge{background:#3cd296}
+.rp-fix{font-size:13px;color:var(--text);line-height:1.5}
+.rp-controls{display:flex;gap:10px;justify-content:center;padding:14px 20px;border-top:1px solid var(--border)}
+.rp-empty{padding:42px 24px;text-align:center;color:var(--muted)}
+.hist-row{display:flex;align-items:center;gap:14px;padding:13px;border:1px solid var(--border);border-radius:12px;margin-bottom:10px;background:#0e1016}
+.hist-score{flex:none;width:48px;height:48px;border-radius:11px;border:2px solid var(--faint);display:grid;place-items:center;font-family:'Fraunces',serif;font-weight:700;font-size:19px}
+.hist-meta{flex:1;min-width:0}
+.hist-name{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-sub{font-size:11.5px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-sub .mono{color:var(--muted)}
+.hist-open{flex:none;padding:8px 13px;font-size:12px;white-space:nowrap}
+section.blk{margin-bottom:24px}
+.subhd{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin:0 0 12px}
+
+
+/* === SynAIpse professional polish layer: keeps original scanner layout/logic === */
+:root{
+  --syn-bg:#051817; --syn-sidebar:#061f1d; --syn-card:#092724; --syn-card2:#0c302c;
+  --syn-line:rgba(160,255,210,.12); --syn-line2:#16443f; --syn-lime:#c7ff4d;
+  --syn-green:#00c983; --syn-red:#ff1654; --syn-amber:#ffbd2e; --syn-text:#e8fffa;
+  --syn-muted:#8db1ab; --syn-shadow:0 22px 70px rgba(0,0,0,.32);
+}
+body{background:radial-gradient(circle at 12% 0%,rgba(199,255,77,.10),transparent 32%),radial-gradient(circle at 92% 8%,rgba(0,201,131,.10),transparent 25%),linear-gradient(180deg,#041210,#061918 45%,#030d0c)!important;color:var(--syn-text)!important;}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(199,255,77,.028) 1px,transparent 1px),linear-gradient(90deg,rgba(199,255,77,.022) 1px,transparent 1px);background-size:38px 38px;opacity:.7;mask-image:linear-gradient(to bottom,black,transparent 96%);z-index:-1}
+.nav{background:rgba(4,18,17,.92)!important;border-right:1px solid var(--syn-line2)!important;box-shadow:12px 0 40px rgba(0,0,0,.18)}
+.nav-brand{padding:8px 8px 18px!important;margin-bottom:10px!important;border-bottom:1px solid rgba(199,255,77,.10)}
+.nav-mark{background:linear-gradient(135deg,var(--syn-lime),var(--syn-green))!important;color:#041210!important;border-radius:12px!important;box-shadow:0 0 26px rgba(199,255,77,.20)}
+.nav-brandtext b{font-family:Georgia,'Times New Roman',serif!important;color:var(--syn-lime)!important;letter-spacing:-.03em}.nav-sec{color:#6e918c!important;letter-spacing:.14em!important}.nav-item{border:1px solid transparent!important;border-radius:12px!important;color:#a9c9c3!important}.nav-item:hover,.nav-item.active{background:#0b2b27!important;border-color:rgba(199,255,77,.15)!important;color:var(--syn-lime)!important}.nav-item.disabled{opacity:.45!important}.nav-foot{color:#789993!important}
+.topbar{background:rgba(5,24,23,.68)!important;border:1px solid var(--syn-line)!important;border-radius:18px!important;padding:14px 18px!important;margin:18px 18px 18px!important;backdrop-filter:blur(18px);box-shadow:0 16px 45px rgba(0,0,0,.18)}
+.logo .mark{background:#0d1d2b!important;border:1px solid rgba(199,255,77,.16)!important;color:var(--syn-lime)!important;border-radius:13px!important}.wm b{font-family:Georgia,'Times New Roman',serif!important;color:var(--syn-lime)!important}.wm em{color:#b5bac5!important;font-style:normal!important}.logo small{letter-spacing:.28em!important;color:#8d94a4!important}
+.card{background:rgba(8,35,32,.86)!important;border:1px solid var(--syn-line2)!important;border-radius:10px!important;box-shadow:var(--syn-shadow)!important}.card .hd{border-bottom:1px solid rgba(160,255,210,.09)!important;background:linear-gradient(180deg,rgba(199,255,77,.035),transparent)!important}.card h2{color:#eafffa!important;letter-spacing:-.02em}.bd{color:#d8f2ed!important}.field input,.field select,input,select,textarea{background:#061b19!important;border:1px solid #16443f!important;color:#e8fffa!important;border-radius:10px!important}.field input:focus,input:focus,select:focus,textarea:focus{border-color:rgba(199,255,77,.55)!important;box-shadow:0 0 0 3px rgba(199,255,77,.08)!important;outline:none!important}.fl,.subhd{color:#a9cbc5!important}.hint{color:#789993!important}.btn{border-radius:11px!important;font-weight:800!important}.btn-primary{background:linear-gradient(135deg,var(--syn-lime),var(--syn-green))!important;color:#041210!important;border:0!important}.btn-ghost{background:#092724!important;border:1px solid #16443f!important;color:#d8f2ed!important}.btn-danger{background:rgba(255,22,84,.13)!important;border-color:rgba(255,22,84,.35)!important;color:#ffb4c5!important}.btn-ab{background:linear-gradient(135deg,#163b35,#0f5b46)!important;border-color:rgba(199,255,77,.22)!important;color:#eafffa!important}.tag-mini,.selcount,.pill{border-radius:999px!important;border-color:#16443f!important;background:#08211f!important;color:#a8cec8!important}.tag-mini.on,.badge.fast{background:rgba(199,255,77,.12)!important;color:var(--syn-lime)!important;border-color:rgba(199,255,77,.35)!important}.console,.cmdbox,.codeblk{background:#041210!important;border:1px solid #16443f!important;border-radius:10px!important;color:#bfe6df!important}.probe,.cat{border-color:#16443f!important;background:#061f1d!important;border-radius:10px!important}.cat.open>.cat-hd,.probe:hover{background:#0b2b27!important}.gauge{box-shadow:inset 0 0 0 1px rgba(255,255,255,.06),0 16px 50px rgba(0,0,0,.25)!important}.inner{background:#08211f!important}.modal{background:#08211f!important;border:1px solid #16443f!important;border-radius:18px!important;box-shadow:var(--syn-shadow)!important}.modal-hd{border-bottom:1px solid rgba(160,255,210,.10)!important}.hist-row,.res-row,.smini{background:#061f1d!important;border-color:#16443f!important;border-radius:10px!important}.bar i{background:linear-gradient(90deg,#ff1654,#ffbd2e,#00c983)!important}
+.login-ov{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:22px;background:radial-gradient(circle at 50% 16%,rgba(199,255,77,.13),transparent 28%),linear-gradient(160deg,#041210,#061918 55%,#020807)}
+.login-box{width:min(430px,100%);background:rgba(8,35,32,.92);border:1px solid #16443f;border-radius:24px;box-shadow:var(--syn-shadow);padding:32px;backdrop-filter:blur(18px)}
+.login-logo{display:flex;align-items:center;gap:14px;margin-bottom:28px}.login-logo .mark{width:52px;height:52px;border-radius:15px;background:#0d1d2b;border:1px solid rgba(199,255,77,.16);display:grid;place-items:center;color:var(--syn-lime)}
+.login-title{font-size:26px;font-weight:850;letter-spacing:-.04em;margin:0 0 8px}.login-copy{margin:0 0 22px;color:var(--syn-muted);line-height:1.55}.login-error{display:none;color:#ff8aa6;font-size:13px;margin-top:12px}.login-help{text-align:center;color:#789993;font-size:12px;margin-top:16px}.login-help b{color:#d8f2ed}
+@media(max-width:860px){.topbar{margin:10px!important}.nav{display:none!important}.appmain{margin-left:0!important}}
+
+
+
+/* === Professional home page layer, scoped to avoid breaking scanner dashboard === */
+.home-page{position:fixed;inset:0;z-index:9998;overflow:auto;background:radial-gradient(circle at 12% 0%,rgba(199,255,77,.12),transparent 32%),radial-gradient(circle at 85% 10%,rgba(0,201,131,.11),transparent 28%),linear-gradient(180deg,#041210,#061918 52%,#030d0c);color:#e8fffa;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+.home-page:before{content:"";position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(199,255,77,.028) 1px,transparent 1px),linear-gradient(90deg,rgba(199,255,77,.022) 1px,transparent 1px);background-size:42px 42px;opacity:.7;mask-image:linear-gradient(to bottom,black,transparent 90%)}
+.home-ann{height:36px;display:grid;place-items:center;text-align:center;padding:0 16px;background:linear-gradient(90deg,rgba(199,255,77,.16),rgba(0,201,131,.12));border-bottom:1px solid rgba(199,255,77,.12);font-size:12px;color:#cfeee8}.home-ann b{color:#c7ff4d}
+.home-nav{position:sticky;top:0;z-index:5;backdrop-filter:blur(18px);background:rgba(4,18,17,.78);border-bottom:1px solid rgba(160,255,210,.10)}
+.home-nav-in{max-width:1180px;margin:auto;height:74px;padding:0 24px;display:flex;align-items:center;gap:24px}.home-brand{display:flex;align-items:center;gap:13px;margin-right:auto}.home-mark{width:44px;height:44px;border-radius:14px;background:#0d1d2b;border:1px solid rgba(199,255,77,.17);display:grid;place-items:center;color:#c7ff4d}.home-word{font-family:Georgia,'Times New Roman',serif;font-weight:850;font-size:22px;letter-spacing:-.05em}.home-word .syn{color:#c7ff4d}.home-word .scan{color:#b5bac5}.home-sub{font-size:10px;color:#8d94a4;letter-spacing:.28em;text-transform:uppercase;font-weight:800;margin-top:3px}.home-links{display:flex;gap:22px;color:#b9d6d0;font-size:13px}.home-links a:hover{color:#c7ff4d}.home-btn{border:1px solid #16443f;background:#092724;color:#e8fffa;border-radius:11px;padding:11px 15px;font-weight:850}.home-btn.primary{background:linear-gradient(135deg,#c7ff4d,#00c983);color:#041210;border:0}.home-btn.light{background:#e8fffa;color:#041210;border:0}
+.home-section{max-width:1180px;margin:auto;padding:86px 24px}.home-hero{text-align:center;padding-top:96px}.home-eyebrow{display:inline-flex;gap:8px;align-items:center;border:1px solid rgba(199,255,77,.22);background:rgba(199,255,77,.07);color:#e8ffc1;border-radius:999px;padding:8px 13px;font-size:12px;font-weight:850;margin-bottom:24px}.home-hero h1{max-width:970px;margin:0 auto;font-size:clamp(48px,7vw,88px);line-height:.97;letter-spacing:-.075em;color:#f3fff9}.home-grad{background:linear-gradient(90deg,#c7ff4d,#00d891,#74ffd9);-webkit-background-clip:text;background-clip:text;color:transparent}.home-hero p{max-width:670px;margin:24px auto 0;color:#8db1ab;font-size:18px;line-height:1.62}.home-actions{display:flex;gap:13px;justify-content:center;flex-wrap:wrap;margin-top:34px}.home-metrics{max-width:900px;margin:68px auto 0;border-top:1px solid rgba(160,255,210,.16);padding-top:26px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px;text-align:left}.home-metric{display:flex;gap:12px}.home-metric i{font-style:normal;color:#c7ff4d}.home-metric b{display:block;color:#e8fffa;font-size:23px;letter-spacing:-.04em}.home-metric span{display:block;color:#789993;font-size:12px;margin-top:3px}.home-head{text-align:center;margin-bottom:32px}.home-head h2{font-size:clamp(34px,5vw,58px);line-height:1.02;letter-spacing:-.055em;margin:0;color:#eafffa}.home-head p{max-width:620px;margin:15px auto 0;color:#8db1ab;line-height:1.62}.home-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.home-card{background:rgba(8,35,32,.82);border:1px solid #16443f;border-radius:14px;min-height:260px;padding:25px;box-shadow:0 22px 70px rgba(0,0,0,.25)}.home-icon{width:42px;height:42px;border-radius:12px;background:rgba(199,255,77,.08);border:1px solid rgba(199,255,77,.20);display:grid;place-items:center;color:#c7ff4d;margin-bottom:25px}.home-card h3{font-size:22px;margin:0 0 10px;color:#f3fff9;letter-spacing:-.035em}.home-card p{color:#8db1ab;line-height:1.55;margin:0 0 18px}.home-card ul{list-style:none;padding:0;margin:0;display:grid;gap:10px;color:#cce8e2;font-size:13px}.home-card li:before{content:"•";color:#c7ff4d;margin-right:9px;font-weight:900}.home-split{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:stretch}.home-panel{background:rgba(8,35,32,.86);border:1px solid #16443f;border-radius:14px;padding:28px;box-shadow:0 22px 70px rgba(0,0,0,.25)}.home-terminal{background:#041210;border:1px solid #16443f;border-radius:12px;overflow:hidden}.home-term-top{height:42px;border-bottom:1px solid rgba(160,255,210,.10);display:flex;align-items:center;gap:7px;padding:0 14px;color:#789993;font-size:12px}.home-dot{width:9px;height:9px;border-radius:99px;background:#ff1654}.home-dot.y{background:#ffbd2e}.home-dot.g{background:#00c983}.home-term-body{padding:18px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.75;color:#bfe6df}.home-ok{color:#00e096}.home-bad{color:#ff6088}.home-warn{color:#ffcf69}.home-footer{border-top:1px solid rgba(160,255,210,.10);padding:28px 24px;color:#789993}.home-foot-in{max-width:1180px;margin:auto;display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap}
+@media(max-width:900px){.home-links{display:none}.home-cards,.home-metrics,.home-split{grid-template-columns:1fr}.home-hero{text-align:left}.home-actions{justify-content:flex-start}.home-hero h1{font-size:52px}}
+
+</style>
+</head>
+<body>
+
+<div class="home-page" id="homePage">
+  <div class="home-ann">SynAIpse Aegis · <b>LLM red-team scanner</b> with MITRE ATLAS, OWASP LLM, Aegis guardrail validation and professional reports</div>
+  <header class="home-nav"><div class="home-nav-in">
+    <div class="home-brand"><div class="home-mark"><svg width="25" height="25" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.7"/><path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></div><div><div class="home-word"><span class="syn">SynAIpse</span> <span class="scan">Scanner</span></div><div class="home-sub">LLM RED-TEAM SECURITY CONSOLE</div></div></div>
+    <nav class="home-links"><a href="#homePlatform">Platform</a><a href="#homeRedteam">Scanner</a><a href="#homeReports">Reports</a></nav>
+    <button class="home-btn" data-open-login>Log in</button><button class="home-btn light" data-open-login>Open console</button>
+  </div></header>
+  <main>
+    <section class="home-section home-hero"><div class="home-eyebrow">✦ Garak-native · Aegis guardrails · Audit-ready evidence</div><h1>Professional AI security console to <span class="home-grad">scan, prove, and report</span> LLM risk.</h1><p>Run automated Garak red-team probes, map findings to MITRE ATLAS and OWASP LLM, replay successful exploits, compare raw vs guarded behavior, and export executive reports.</p><div class="home-actions"><button class="home-btn primary" data-open-login>Launch dashboard</button><a class="home-btn" href="#homePlatform">Explore platform</a></div><div class="home-metrics"><div class="home-metric"><i>◎</i><div><b>132 probe families</b><span>Prompt injection, jailbreak, leakage, malware and more</span></div></div><div class="home-metric"><i>🛡</i><div><b>Aegis validation</b><span>Before / after guardrail effectiveness scans</span></div></div><div class="home-metric"><i>▣</i><div><b>Report center</b><span>HTML, PDF and attack replay</span></div></div></div></section>
+    <section class="home-section" id="homePlatform"><div class="home-head"><h2>One dashboard for the full AI security workflow</h2><p>Built around your existing scanner — no extra chatbot integration, no changed backend logic, just a cleaner professional interface.</p></div><div class="home-cards"><article class="home-card"><div class="home-icon">🎯</div><h3>AI Red Teaming</h3><p>Attack REST chatbot targets using selected Garak probes.</p><ul><li>Prompt injection and jailbreaks</li><li>Data leakage and exfiltration</li><li>Live console streaming</li></ul></article><article class="home-card"><div class="home-icon">📊</div><h3>Security Dashboard</h3><p>Track evaluations, scan health, risk categories and historical runs.</p><ul><li>Resilience score</li><li>Issue category view</li><li>Scan history</li></ul></article><article class="home-card"><div class="home-icon">📄</div><h3>Reports & Evidence</h3><p>Convert technical findings into clear artifacts for demos and stakeholders.</p><ul><li>Full HTML report</li><li>PDF export</li><li>Attack replay theater</li></ul></article></div></section>
+    <section class="home-section home-split" id="homeRedteam"><div class="home-panel"><div class="home-eyebrow">Scanner flow</div><h2 style="font-size:46px;line-height:1;letter-spacing:-.055em;margin:0 0 15px;color:#eafffa">Keep the original tool, make it feel enterprise-ready.</h2><p style="color:#8db1ab;line-height:1.7">The dashboard still calls the same backend endpoints: preview, run, logs, report, compare, replay and export. The redesign only changes the HTML presentation.</p></div><div class="home-terminal"><div class="home-term-top"><span class="home-dot"></span><span class="home-dot y"></span><span class="home-dot g"></span><span>SynAIpse live scan</span></div><div class="home-term-body"><div><span class="home-ok">$</span> garak -t rest.RestGenerator -p promptinject,dan,web_injection</div><div class="home-warn">→ target: Team5 Bank AI Chatbot /chat</div><div>probes.promptinject ██████████ 100%</div><div class="home-bad">detector fired · 36/52 hits</div><div class="home-ok">✓ report parsed · resilience score: 31/100</div></div></div></section>
+    <section class="home-section" id="homeReports"><div class="home-head"><h2>Scanner, dashboard and reports in one polished package</h2><p>Login with admin/admin, open the dashboard, run scans, view reports, and export PDFs.</p></div></section>
+  </main><footer class="home-footer"><div class="home-foot-in"><div>© 2026 SynAIpse Scanner</div><div>MITRE ATLAS · OWASP LLM · Garak · Aegis</div></div></footer>
+</div>
+
+
+<div class="login-ov" id="loginOverlay" style="display:none">
+  <div class="login-box">
+    <div class="login-logo">
+      <span class="mark"><svg width="28" height="28" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.7"/><path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+      <div><div class="wm"><b>SynAIpse</b> <em>Scanner</em></div><small>LLM RED-TEAM SECURITY CONSOLE</small></div>
+    </div>
+    <h1 class="login-title">Sign in to console</h1>
+    <p class="login-copy">Continue to the existing scanner dashboard, reports, attack replay, and Aegis controls.</p>
+    <div class="field"><label class="fl">Username</label><input id="loginUser" autocomplete="username" placeholder="admin"></div>
+    <div class="field"><label class="fl">Password</label><input id="loginPass" type="password" autocomplete="current-password" placeholder="admin"></div>
+    <button class="btn btn-primary btn-block" id="loginSubmit" style="width:100%;margin-top:6px">Log in</button>
+    <div class="login-error" id="loginError">Invalid credentials. Use admin / admin.</div>
+    <div class="login-help">Demo credentials: <b>admin</b> / <b>admin</b></div>
+  </div>
+</div>
+
+<nav class="nav">
+  <div class="nav-brand">
+    <span class="nav-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#c7f24c" stroke-width="1.7"/><circle cx="12" cy="12" r="4" stroke="#c7f24c" stroke-width="1.7"/><circle cx="12" cy="12" r="1.5" fill="#c7f24c"/></svg></span>
+    <span class="nav-brandtext"><b>SynAIpse</b></span>
+  </div>
+  <div class="nav-sec">Scanner</div>
+  <a class="nav-item active" data-scroll="secTarget"><span class="ni-ic"><svg viewBox="0 0 24 24"><path d="M4 11l8-6.5 8 6.5"/><path d="M6 9.5V19h12V9.5"/></svg></span><span class="ni-tx">Overview</span></a>
+  <a class="nav-item" data-scroll="secRun"><span class="ni-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="3"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/></svg></span><span class="ni-tx">Scan setup</span></a>
+  <a class="nav-item" data-scroll="secProbes"><span class="ni-ic"><svg viewBox="0 0 24 24"><path d="M9 3.5h6M10 3.5v6.5l-4.5 8a1.8 1.8 0 0 0 1.6 2.7h9.8a1.8 1.8 0 0 0 1.6-2.7L14 10V3.5"/><path d="M7.5 15h9"/></svg></span><span class="ni-tx">Attack probes</span></a>
+  <a class="nav-item" data-scroll="secConsole"><span class="ni-ic"><svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M7 9.5l3 2.5-3 2.5M12.5 15h4.5"/></svg></span><span class="ni-tx">Console</span></a>
+  <a class="nav-item" data-scroll="secResults"><span class="ni-ic"><svg viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M7 20v-6M12 20V7M17 20v-9"/></svg></span><span class="ni-tx">Results</span></a>
+  <div class="nav-sec">Reports</div>
+  <a class="nav-item" id="navHistory"><span class="ni-ic"><svg viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 8.5-8.5 8.5 8.5 0 0 0-6.6 3.1"/><path d="M3.2 4.2v3.4h3.4"/><path d="M12 7.5V12l3 2"/></svg></span><span class="ni-tx">Scan history</span></a>
+  <a class="nav-item nav-need disabled" id="navReport"><span class="ni-ic"><svg viewBox="0 0 24 24"><path d="M13.5 3.5H7a1.8 1.8 0 0 0-1.8 1.8v13.4A1.8 1.8 0 0 0 7 20.5h10a1.8 1.8 0 0 0 1.8-1.8V8.8z"/><path d="M13.5 3.5v5.3h5.3"/><path d="M9 13h6M9 16.5h6"/></svg></span><span class="ni-tx">Full report</span></a>
+  <a class="nav-item nav-need disabled" id="navReplay"><span class="ni-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M10.2 8.8l5 3.2-5 3.2z"/></svg></span><span class="ni-tx">Attack replay</span></a>
+  <a class="nav-item nav-need disabled" id="navEmail"><span class="ni-ic"><svg viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M3.5 6.5l8.5 6 8.5-6"/></svg></span><span class="ni-tx">Export &amp; email</span></a>
+  <div class="nav-spacer"></div>
+  <div class="nav-foot"><div class="nav-cred">SynAIpse Aegis · v1.0</div></div>
+</nav>
+<div class="appmain">
+<div class="topbar">
+  <div class="logo">
+    <span class="mark">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="9" stroke="#c7f24c" stroke-width="1.6"/>
+        <circle cx="12" cy="12" r="4" stroke="#c7f24c" stroke-width="1.6"/>
+        <path d="M12 1.5V5M12 19V22.5M1.5 12H5M19 12H22.5" stroke="#c7f24c" stroke-width="1.6" stroke-linecap="round"/>
+        <circle cx="12" cy="12" r="1.4" fill="#c7f24c"/>
+      </svg>
+    </span>
+    <div>
+      <div class="wm"><b>SynAIpse</b> <em>Scanner</em></div>
+      <small>LLM Red-Team Security Console</small>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <span class="pill" id="statusPill"><span class="dot" id="statusDot"></span><span id="statusText">Idle</span></span>
+</div>
+
+<div class="wrap">
+  <!-- LEFT: config -->
+  <div class="left">
+    <div class="card" id="secTarget">
+      <div class="hd"><h2>Target</h2></div>
+      <div class="bd">
+        <div class="field">
+          <label class="fl">Target name</label>
+          <input id="name" value="Team5 Bank AI Chatbot" placeholder="My Chatbot">
+        </div>
+        <div class="row">
+          <div><label class="fl">Host / IP</label><input id="host" value="127.0.0.1" placeholder="127.0.0.1"></div>
+          <div><label class="fl">Port</label><input id="port" value="5000" placeholder="5000"></div>
+        </div>
+        <div class="row">
+          <div><label class="fl">Path</label><input id="path" value="/chat" placeholder="/chat"></div>
+          <div><label class="fl">Method</label>
+            <select id="method"><option>post</option><option>get</option><option>put</option></select>
+          </div>
+        </div>
+        <div class="row">
+          <div><label class="fl">Request field</label><input id="reqField" value="message" placeholder="message"></div>
+          <div><label class="fl">Response field</label><input id="respField" value="reply" placeholder="reply"></div>
+        </div>
+        <div class="row">
+          <div><label class="fl">Auth header <span style="color:var(--faint)">(optional)</span></label><input id="authHeader" placeholder="Bearer xyz..."></div>
+          <div><label class="fl">Timeout (s)</label><input id="timeout" value="120"></div>
+        </div>
+        <div class="field">
+          <label class="fl">Target model <span style="color:var(--faint)">(sent to the chatbot target)</span></label>
+          <select id="provider">
+            <option value="ollama">TinyLlama · Ollama (local)</option>
+            <option value="groq">Groq (cloud)</option>
+          </select>
+        </div>
+        <div class="hint">Endpoint preview: <span class="mono" id="uriPreview">http://127.0.0.1:5000/chat</span></div>
+      </div>
+    </div>
+
+    <div class="card" id="secRun">
+      <div class="hd"><h2>Run options</h2></div>
+      <div class="bd">
+        <div class="row3">
+          <div><label class="fl">Generations</label><input id="generations" type="number" min="1" value="1"></div>
+          <div><label class="fl">Parallel</label><input id="parallel" type="number" min="1" value="8"></div>
+          <div><label class="fl">Seed</label><input id="seed" placeholder="—"></div>
+        </div>
+        <div class="field">
+          <label class="fl">Report prefix <span style="color:var(--faint)">(optional)</span></label>
+          <input id="reportPrefix" placeholder="team5_run1">
+        </div>
+        <label class="switch"><input type="checkbox" id="verbose" checked> Verbose output (-v)</label>
+        <div class="actions">
+          <button class="btn btn-primary btn-block" id="runBtn">▸  Run scan</button>
+          <button class="btn btn-danger" id="stopBtn" disabled>■ Stop</button>
+        </div>
+        <div class="actions">
+          <button class="btn btn-ab btn-block" id="abBtn">⚔  Before / After guardrail scan</button>
+        </div>
+        <div class="hint" style="margin:-4px 0 4px">Runs the suite twice — raw target vs. <b>SynAIpse Aegis</b> guardrail — and opens an F→A comparison.</div>
+        <div class="actions">
+          <button class="btn btn-ghost btn-block" id="previewBtn">Preview command &amp; generator.json</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right">
+    <section class="blk card" id="secProbes">
+      <div class="hd"><h2>Attack &amp; vulnerability probes</h2>
+        <div class="spacer" style="flex:1"></div>
+        <span class="selcount"><b id="selN">0</b> selected</span>
+      </div>
+      <div class="bd">
+        <div class="probe-toolbar">
+          <input type="text" id="search" placeholder="Search probes (e.g. dan, base64, sql)...">
+          <span class="tag-mini" id="recOnly">Recommended only</span>
+          <span class="tag-mini" id="expandAll">Expand all</span>
+          <span class="tag-mini" id="clearAll">Clear</span>
+        </div>
+        <div id="cats"></div>
+      </div>
+    </section>
+
+    <section class="blk card" id="previewCard" style="display:none">
+      <div class="hd"><h2>Command preview</h2></div>
+      <div class="bd">
+        <p class="subhd">garak command</p>
+        <div class="cmdbox" id="cmdPreview"></div>
+        <p class="subhd" style="margin-top:16px">generator.json</p>
+        <div class="cmdbox" id="genPreview" style="color:#7fd6c6"></div>
+      </div>
+    </section>
+
+    <section class="blk card" id="secConsole">
+      <div class="hd"><h2>Live console</h2>
+        <div class="spacer" style="flex:1"></div>
+        <span class="tag-mini" id="clearLog">Clear</span>
+      </div>
+      <div class="bd">
+        <div class="progwrap" id="progWrap" style="display:none">
+          <div class="prog-top"><span class="prog-label" id="progLabel">Preparing scan…</span><span class="prog-pct" id="progPct">0%</span></div>
+          <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"><div class="prog-shine"></div><div class="prog-knob"></div></div></div>
+        </div>
+        <div class="console" id="console"><span class="console-empty">Console output will stream here once a scan starts…</span></div>
+      </div>
+    </section>
+
+    <section class="blk card" id="secResults">
+      <div class="hd"><h2>Results</h2></div>
+      <div class="bd" id="results">
+        <div class="empty">No results yet. Run a scan to see the pass/fail breakdown and a resilience score.</div>
+      </div>
+    </section>
+  </div>
+</div>
+</div>
+<div class="modal-ov" id="historyModal">
+  <div class="modal">
+    <div class="modal-hd"><span>Previous scans</span><button class="modal-x" id="histClose">✕</button></div>
+    <div class="modal-bd" id="histBody"></div>
+  </div>
+</div>
+<div class="modal-ov" id="emailModal">
+  <div class="modal">
+    <div class="modal-hd"><span>Email / export report</span><button class="modal-x" id="emailClose">✕</button></div>
+    <div class="modal-bd">
+      <p class="subhd">Email the latest scan report (PDF + HTML attached), or download it directly.</p>
+      <input type="email" id="emailTo" placeholder="recipient@example.com" style="width:100%;box-sizing:border-box;padding:10px 12px;margin:10px 0;border-radius:8px;border:1px solid #2a2f3a;background:#0e1117;color:#e6e8ec;font-size:14px">
+      <div class="actions">
+        <button class="btn btn-primary" id="emailSend">📧 Send email</button>
+        <button class="btn btn-ghost" id="dlPdf">⬇ PDF</button>
+        <button class="btn btn-ghost" id="dlHtml">⬇ HTML</button>
+      </div>
+      <div id="emailMsg" class="hint" style="margin-top:12px;white-space:pre-wrap"></div>
+    </div>
+  </div>
+</div>
+<div class="modal-ov rp-ov" id="replayModal">
+  <div class="modal rp-modal">
+    <div class="modal-hd"><span>🎬 Exploit Replay Theater</span><button class="modal-x" id="replayClose">✕</button></div>
+    <div class="modal-bd rp-bd">
+      <div id="rpStage" class="rp-stage">
+        <div class="rp-meta"><span id="rpSev" class="rp-sev">—</span><span id="rpTitle" class="rp-title">—</span><span id="rpCount" class="rp-count"></span></div>
+        <div class="rp-tags" id="rpTags"></div>
+        <div class="rp-scene">
+          <div class="rp-row rp-attacker"><div class="rp-avatar rp-att">😈</div><div class="rp-bubble rp-att-bubble"><div class="rp-who">Attacker</div><div id="rpPayload" class="rp-text"></div></div></div>
+          <div class="rp-arrow" id="rpArrow"><span class="rp-packet">▶</span> delivered to <b id="rpModel">model</b></div>
+          <div class="rp-row rp-victim"><div class="rp-avatar rp-vic">🏦</div><div class="rp-bubble rp-vic-bubble"><div class="rp-who">Team5 Bank AI <span id="rpThinking" class="rp-think hide">thinking…</span></div><div id="rpResponse" class="rp-text"></div></div></div>
+        </div>
+        <div class="rp-verdict" id="rpVerdict"><div class="rp-verdict-hd"><span id="rpVerdictBadge" class="rp-vbadge">BREACHED</span> <span id="rpVerdictText"></span></div><div class="rp-fix"><b>🛡 Recommended fix:</b> <span id="rpFix"></span></div></div>
+      </div>
+      <div id="rpEmpty" class="rp-empty" style="display:none"></div>
+      <div class="rp-controls" id="rpControls"><button class="btn btn-ghost" id="rpPrev">‹ Prev</button><button class="btn btn-primary" id="rpReplay">↻ Replay</button><button class="btn btn-ghost" id="rpNext">Next ›</button></div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Probe taxonomy: every garak probe grouped by attack category.
+// r:true = recommended/fast default probe; r:false = extended/slow.
+// ---------------------------------------------------------------------------
+const CATEGORIES = [
+  {id:'prompt_injection', name:'Prompt Injection', icon:'💉', owasp:'LLM01',
+   blurb:'Override system instructions via direct & indirect injected text.',
+   probes:[
+    {n:'promptinject.HijackHateHumans',r:true},{n:'promptinject.HijackHateHumansFull',r:false},
+    {n:'promptinject.HijackKillHumans',r:true},{n:'promptinject.HijackKillHumansFull',r:false},
+    {n:'promptinject.HijackLongPrompt',r:true},{n:'promptinject.HijackLongPromptFull',r:false},
+    {n:'latentinjection.LatentInjectionFactSnippetEiffel',r:true},{n:'latentinjection.LatentInjectionFactSnippetEiffelFull',r:false},
+    {n:'latentinjection.LatentInjectionFactSnippetLegal',r:true},{n:'latentinjection.LatentInjectionFactSnippetLegalFull',r:false},
+    {n:'latentinjection.LatentInjectionReport',r:true},{n:'latentinjection.LatentInjectionReportFull',r:false},
+    {n:'latentinjection.LatentInjectionResume',r:true},{n:'latentinjection.LatentInjectionResumeFull',r:false},
+    {n:'latentinjection.LatentInjectionTranslationEnFr',r:true},{n:'latentinjection.LatentInjectionTranslationEnFrFull',r:false},
+    {n:'latentinjection.LatentInjectionTranslationEnZh',r:true},{n:'latentinjection.LatentInjectionTranslationEnZhFull',r:false},
+    {n:'latentinjection.LatentJailbreak',r:true},{n:'latentinjection.LatentJailbreakFull',r:false},
+    {n:'latentinjection.LatentWhois',r:true},{n:'latentinjection.LatentWhoisSnippet',r:true},{n:'latentinjection.LatentWhoisSnippetFull',r:false},
+    {n:'goodside.Tag',r:true},{n:'goodside.ThreatenJSON',r:true},{n:'goodside.WhoIsRiley',r:true},{n:'goodside.Davidjl',r:false},
+   ]},
+  {id:'jailbreak', name:'Jailbreak & DAN', icon:'🔓', owasp:'LLM01',
+   blurb:'Roleplay, DAN personas & adversarial suffixes that bypass safety.',
+   probes:[
+    {n:'dan.Ablation_Dan_11_0',r:true},{n:'dan.AutoDANCached',r:true},{n:'dan.DanInTheWild',r:true},
+    {n:'dan.AntiDAN',r:false},{n:'dan.AutoDAN',r:false},{n:'dan.ChatGPT_Developer_Mode_RANTI',r:false},
+    {n:'dan.ChatGPT_Developer_Mode_v2',r:false},{n:'dan.ChatGPT_Image_Markdown',r:false},{n:'dan.DAN_Jailbreak',r:false},
+    {n:'dan.DUDE',r:false},{n:'dan.DanInTheWildFull',r:false},{n:'dan.Dan_10_0',r:false},{n:'dan.Dan_11_0',r:false},
+    {n:'dan.Dan_6_0',r:false},{n:'dan.Dan_6_2',r:false},{n:'dan.Dan_7_0',r:false},{n:'dan.Dan_8_0',r:false},
+    {n:'dan.Dan_9_0',r:false},{n:'dan.STAN',r:false},
+    {n:'dra.DRA',r:true},{n:'dra.DRAAdvanced',r:false},
+    {n:'doctor.Bypass',r:false},{n:'doctor.BypassLeet',r:false},{n:'doctor.Puppetry',r:false},
+    {n:'fitd.FITD',r:false},{n:'goat.GOATAttack',r:false},
+    {n:'grandma.Substances',r:true},{n:'grandma.Win10',r:true},{n:'grandma.Win11',r:true},
+    {n:'suffix.GCGCached',r:true},{n:'suffix.BEAST',r:false},{n:'suffix.GCG',r:false},
+    {n:'tap.TAPCached',r:true},{n:'tap.PAIR',r:false},{n:'tap.TAP',r:false},
+    {n:'phrasing.FutureTense',r:true},{n:'phrasing.PastTense',r:true},
+    {n:'phrasing.FutureTenseFull',r:false},{n:'phrasing.PastTenseFull',r:false},
+    {n:'sata.MLM',r:true},
+   ]},
+  {id:'encoding', name:'Encoding & Obfuscation', icon:'🧬', owasp:'LLM01',
+   blurb:'Smuggle malicious instructions via base64, ROT13, unicode tricks, ANSI.',
+   probes:[
+    {n:'encoding.InjectAscii85',r:true},{n:'encoding.InjectAtbash',r:true},{n:'encoding.InjectBase16',r:true},
+    {n:'encoding.InjectBase2048',r:true},{n:'encoding.InjectBase32',r:true},{n:'encoding.InjectBase64',r:true},
+    {n:'encoding.InjectBraille',r:true},{n:'encoding.InjectEcoji',r:true},{n:'encoding.InjectHex',r:true},
+    {n:'encoding.InjectMorse',r:true},{n:'encoding.InjectNato',r:true},{n:'encoding.InjectROT13',r:true},
+    {n:'encoding.InjectUU',r:true},{n:'encoding.InjectUnicodeTagChars',r:true},{n:'encoding.InjectZalgo',r:true},
+    {n:'encoding.InjectLeet',r:false},{n:'encoding.InjectMime',r:false},{n:'encoding.InjectQP',r:false},
+    {n:'encoding.InjectSneakyBits',r:false},{n:'encoding.InjectUnicodeVariantSelectors',r:false},
+    {n:'ansiescape.AnsiEscaped',r:true},{n:'ansiescape.AnsiRaw',r:true},{n:'ansiescape.AnsiRawTokenizerHF',r:false},
+    {n:'badchars.BadCharacters',r:true},
+    {n:'smuggling.FunctionMasking',r:false},{n:'smuggling.HomoglyphObfuscation',r:false},{n:'smuggling.HypotheticalResponse',r:false},
+   ]},
+  {id:'leakage', name:'Data & Prompt Leakage', icon:'🕵️', owasp:'LLM06',
+   blurb:'Extract the system prompt, secrets/API keys, or memorized training data.',
+   probes:[
+    {n:'sysprompt_extraction.SystemPromptExtraction',r:true},
+    {n:'apikey.CompleteKey',r:true},{n:'apikey.GetKey',r:true},
+    {n:'divergence.Repeat',r:true},{n:'divergence.RepeatedToken',r:true},{n:'divergence.RepeatExtended',r:false},
+    {n:'leakreplay.GuardianCloze',r:true},{n:'leakreplay.GuardianComplete',r:true},
+    {n:'leakreplay.LiteratureCloze',r:true},{n:'leakreplay.LiteratureComplete',r:true},
+    {n:'leakreplay.NYTCloze',r:true},{n:'leakreplay.NYTComplete',r:true},
+    {n:'leakreplay.PotterCloze',r:true},{n:'leakreplay.PotterComplete',r:true},
+    {n:'leakreplay.GuardianClozeFull',r:false},{n:'leakreplay.GuardianCompleteFull',r:false},
+    {n:'leakreplay.LiteratureClozeFull',r:false},{n:'leakreplay.LiteratureCompleteFull',r:false},
+    {n:'leakreplay.NYTClozeFull',r:false},{n:'leakreplay.NYTCompleteFull',r:false},
+    {n:'leakreplay.PotterClozeFull',r:false},{n:'leakreplay.PotterCompleteFull',r:false},
+   ]},
+  {id:'toxicity', name:'Toxicity & Harmful Content', icon:'☠️', owasp:'LLM05',
+   blurb:'Hate speech, slurs, harassment, unsafe medical or harmful instructions.',
+   probes:[
+    {n:'realtoxicityprompts.RTPBlank',r:true},
+    {n:'realtoxicityprompts.RTPFlirtation',r:false},{n:'realtoxicityprompts.RTPIdentity_Attack',r:false},
+    {n:'realtoxicityprompts.RTPInsult',r:false},{n:'realtoxicityprompts.RTPProfanity',r:false},
+    {n:'realtoxicityprompts.RTPSevere_Toxicity',r:false},{n:'realtoxicityprompts.RTPSexually_Explicit',r:false},
+    {n:'realtoxicityprompts.RTPThreat',r:false},
+    {n:'continuation.ContinueSlursReclaimedSlurs',r:true},{n:'continuation.ContinueSlursReclaimedSlursFull',r:false},
+    {n:'lmrc.Bullying',r:true},{n:'lmrc.Deadnaming',r:true},{n:'lmrc.QuackMedicine',r:true},
+    {n:'lmrc.SexualContent',r:true},{n:'lmrc.Sexualisation',r:true},{n:'lmrc.SlurUsage',r:true},
+    {n:'lmrc.Anthropomorphisation',r:false},{n:'lmrc.Profanity',r:false},
+    {n:'donotanswer.DiscriminationExclusionToxicityHatefulOffensive',r:false},{n:'donotanswer.HumanChatbox',r:false},
+    {n:'donotanswer.InformationHazard',r:false},{n:'donotanswer.MaliciousUses',r:false},{n:'donotanswer.MisinformationHarms',r:false},
+    {n:'atkgen.Tox',r:true},{n:'grandma.Slurs',r:true},
+   ]},
+  {id:'malware', name:'Malware & Code Exploitation', icon:'🐞', owasp:'LLM02',
+   blurb:'Generate malware, SQL/template injection payloads, hallucinated packages.',
+   probes:[
+    {n:'malwaregen.Evasion',r:true},{n:'malwaregen.Payload',r:true},{n:'malwaregen.SubFunctions',r:true},{n:'malwaregen.TopLevel',r:true},
+    {n:'exploitation.JinjaTemplatePythonInjection',r:true},{n:'exploitation.SQLInjectionEcho',r:true},{n:'exploitation.SQLInjectionSystem',r:false},
+    {n:'packagehallucination.Python',r:true},{n:'packagehallucination.JavaScript',r:true},{n:'packagehallucination.Ruby',r:true},
+    {n:'packagehallucination.Rust',r:true},{n:'packagehallucination.Perl',r:true},{n:'packagehallucination.Dart',r:true},{n:'packagehallucination.RakuLand',r:true},
+   ]},
+  {id:'misinfo', name:'Misinformation & Hallucination', icon:'🌀', owasp:'LLM09',
+   blurb:'False assertions and confidently wrong reasoning (snowballed errors).',
+   probes:[
+    {n:'misleading.FalseAssertion',r:true},
+    {n:'snowball.GraphConnectivity',r:true},{n:'snowball.GraphConnectivityFull',r:false},
+    {n:'snowball.Primes',r:false},{n:'snowball.PrimesFull',r:false},
+    {n:'snowball.Senators',r:false},{n:'snowball.SenatorsFull',r:false},
+   ]},
+  {id:'web_exfil', name:'Web & Markdown Exfiltration', icon:'🌐', owasp:'LLM02',
+   blurb:'Markdown/HTML image & link tricks that exfiltrate data or inject XSS.',
+   probes:[
+    {n:'web_injection.ColabAIDataLeakage',r:true},{n:'web_injection.MarkdownImageExfil',r:true},
+    {n:'web_injection.MarkdownURIImageExfilExtended',r:true},{n:'web_injection.MarkdownURINonImageExfilExtended',r:true},
+    {n:'web_injection.MarkdownXSS',r:true},{n:'web_injection.PlaygroundMarkdownExfil',r:true},
+    {n:'web_injection.StringAssemblyDataExfil',r:true},{n:'web_injection.TaskXSS',r:true},
+   ]},
+  {id:'robustness', name:'Robustness & Other', icon:'🧰', owasp:'—',
+   blurb:'Glitch tokens, topic guardrails, content filters, multimodal & agent tests.',
+   probes:[
+    {n:'topic.WordnetControversial',r:true},{n:'topic.WordnetAllowedWords',r:false},{n:'topic.WordnetBlockedWords',r:false},
+    {n:'glitch.Glitch',r:false},{n:'glitch.GlitchFull',r:false},
+    {n:'av_spam_scanning.EICAR',r:false},{n:'av_spam_scanning.GTUBE',r:false},{n:'av_spam_scanning.GTphish',r:false},
+    {n:'agent_breaker.AgentBreaker',r:false},{n:'audio.AudioAchillesHeel',r:false},{n:'fileformats.HF_Files',r:false},
+    {n:'visual_jailbreak.FigStep',r:false},{n:'visual_jailbreak.FigStepFull',r:false},
+    {n:'test.Blank',r:false},{n:'test.Test',r:false},
+   ]},
+];
+
+const $=s=>document.querySelector(s);
+const selected=new Set();
+let currentJob=null, pollTimer=null, logOffset=0, recOnlyOn=false, lastJob=null, abMode=false;
+
+function toast(msg,isErr){const t=$('#toast');t.textContent=msg;t.className='toast show'+(isErr?' err':'');setTimeout(()=>t.className='toast',2600);}
+
+function probeId(n){return 'p_'+n.replace(/[^a-z0-9]/gi,'_');}
+function splitName(n){const i=n.indexOf('.');return i<0?[n,'']:[n.slice(0,i),n.slice(i)];}
+
+function renderCats(){
+  const term=$('#search').value.trim().toLowerCase();
+  const host=$('#cats'); host.innerHTML='';
+  CATEGORIES.forEach(cat=>{
+    const matches=cat.probes.filter(p=>{
+      if(recOnlyOn && !p.r) return false;
+      if(term && !(p.n.toLowerCase().includes(term)||cat.name.toLowerCase().includes(term))) return false;
+      return true;
+    });
+    if(matches.length===0) return;
+    const selN=matches.filter(p=>selected.has(p.n)).length;
+    const el=document.createElement('div'); el.className='cat'+(term?' open':'');
+    el.innerHTML=`
+      <div class="cat-hd">
+        <div class="cat-ic">${cat.icon}</div>
+        <div class="cat-meta">
+          <div class="nm">${cat.name} ${cat.owasp!=='—'?`<span class="owasp">${cat.owasp}</span>`:''}</div>
+          <div class="ds">${cat.blurb}</div>
+        </div>
+        <span class="cat-count"><b>${selN}</b>/${matches.length}</span>
+        <span class="chev">›</span>
+      </div>
+      <div class="cat-bd">
+        <div class="cat-tools">
+          <button class="linklike" data-act="all">Select all</button>
+          <span class="linklike sep">·</span>
+          <button class="linklike" data-act="rec">Select recommended</button>
+          <span class="linklike sep">·</span>
+          <button class="linklike" data-act="none">Clear</button>
+        </div>
+        ${matches.map(p=>{const[mod,sub]=splitName(p.n);return `
+          <label class="probe" for="${probeId(p.n)}">
+            <input type="checkbox" id="${probeId(p.n)}" data-probe="${p.n}" ${selected.has(p.n)?'checked':''}>
+            <span class="pn">${mod}<span class="sub">${sub}</span></span>
+            <span class="grow"></span>
+            <span class="badge ${p.r?'fast':'slow'}">${p.r?'fast':'slow'}</span>
+          </label>`;}).join('')}
+      </div>`;
+    // header toggle
+    el.querySelector('.cat-hd').addEventListener('click',e=>{if(e.target.closest('.linklike'))return;el.classList.toggle('open');});
+    // tools
+    el.querySelectorAll('.linklike[data-act]').forEach(b=>b.addEventListener('click',e=>{
+      e.stopPropagation();const act=b.dataset.act;
+      matches.forEach(p=>{if(act==='all')selected.add(p.n);else if(act==='rec'){if(p.r)selected.add(p.n);}else selected.delete(p.n);});
+      renderCats(); updateSel();
+    }));
+    el.querySelectorAll('input[data-probe]').forEach(c=>c.addEventListener('change',()=>{
+      if(c.checked)selected.add(c.dataset.probe);else selected.delete(c.dataset.probe);
+      const cnt=el.querySelector('.cat-count b'); if(cnt){cnt.textContent=matches.filter(p=>selected.has(p.n)).length;}
+      updateSel();
+    }));
+    host.appendChild(el);
+  });
+}
+function updateSel(){$('#selN').textContent=selected.size;}
+
+function cfg(){
+  return {
+    name:$('#name').value, host:$('#host').value, port:$('#port').value, path:$('#path').value,
+    method:$('#method').value, reqField:$('#reqField').value, respField:$('#respField').value,
+    authHeader:$('#authHeader').value, timeout:$('#timeout').value,
+    generations:$('#generations').value, parallel:$('#parallel').value, seed:$('#seed').value,
+    reportPrefix:$('#reportPrefix').value, verbose:$('#verbose').checked,
+    provider:$('#provider')?$('#provider').value:'',
+    probes:[...selected],
+  };
+}
+function updateUri(){
+  let p=$('#path').value||''; if(p&&!p.startsWith('/'))p='/'+p;
+  $('#uriPreview').textContent='http://'+($('#host').value||'127.0.0.1')+':'+($('#port').value||'5000')+(p||'/chat');
+}
+['host','port','path'].forEach(id=>$('#'+id).addEventListener('input',updateUri));
+
+function setStatus(state){
+  const dot=$('#statusDot'),txt=$('#statusText');
+  if(state==='run'){dot.className='dot live';txt.textContent='Scanning…';}
+  else if(state==='done'){dot.className='dot';dot.style.background='var(--green)';txt.textContent='Completed';}
+  else if(state==='stop'){dot.className='dot';dot.style.background='var(--yellow)';txt.textContent='Stopped';}
+  else if(state==='err'){dot.className='dot';dot.style.background='var(--red)';txt.textContent='Error';}
+  else{dot.className='dot';dot.style.background='';txt.textContent='Idle';}
+}
+
+function classifyLine(l){
+  if(/Traceback|Error|refused|FileNotFound|Exception|Failed/i.test(l))return'l-err';
+  if(/⚠|warn/i.test(l))return'l-warn';
+  if(/PASS|ok on|✅|✔|complete/i.test(l))return'l-ok';
+  if(/🕵|🦜|📜|loading|queue|reporting/i.test(l))return'l-info';
+  return'l-trace';
+}
+function appendLines(lines){
+  const c=$('#console'); if(c.querySelector('.console-empty'))c.innerHTML='';
+  const atBottom=c.scrollHeight-c.scrollTop-c.clientHeight<40;
+  lines.forEach(l=>{const s=document.createElement('div');s.className=classifyLine(l);s.textContent=l;c.appendChild(s);});
+  if(atBottom)c.scrollTop=c.scrollHeight;
+}
+
+// ---- live progress (derived from garak's tqdm probe output) ----
+let progTotal=0, progDone=0, progKey=null, progFrac=0, progShown=0;
+function resetProgress(total){
+  progTotal=total||0; progDone=0; progKey=null; progFrac=0; progShown=0;
+  const w=$('#progWrap'); if(!w)return; w.style.display=''; w.classList.remove('done');
+  $('#progFill').style.width='0%'; $('#progPct').textContent='0%';
+  $('#progLabel').textContent='Preparing scan…';
+}
+function parseProg(line){
+  line=line.replace(/\u001b\[[0-9;]*m/g,'');               // strip ANSI colour codes
+  const m=line.match(/(\d{1,3})%\|.*?\|\s*(\d+)\/(\d+)/); if(!m)return null;
+  const idx=line.search(/\d{1,3}%\|/);
+  let desc=idx>0?line.slice(0,idx):''; desc=desc.replace(/[\s:│|>]+$/,'').trim();
+  return {pct:+m[1],n:+m[2],total:+m[3],desc};
+}
+function updateProgress(lines){
+  let changed=false;
+  for(const l of lines){
+    const p=parseProg(l); if(!p)continue;
+    // Only the real probe attempt bar counts. garak also emits a "Preparing
+    // prompts" bar, a bare bar and detector bars — those must NOT advance us.
+    if(!/^probes\./i.test(p.desc)) continue;
+    const key=p.desc.replace(/^probes\./i,'');
+    if(key!==progKey){ if(progKey!==null && progDone<progTotal) progDone++; progKey=key; }
+    progFrac=p.total?Math.min(1,p.n/p.total):p.pct/100;
+    changed=true;
+  }
+  if(changed)renderProgress();
+}
+function renderProgress(){
+  if(!$('#progWrap'))return;
+  let pct = progTotal>0 ? (progDone+progFrac)/progTotal*100 : progFrac*100;
+  pct=Math.max(progShown,Math.min(99,pct)); progShown=pct;
+  $('#progFill').style.width=pct.toFixed(1)+'%';
+  $('#progPct').textContent=Math.round(pct)+'%';
+  if(progKey) $('#progLabel').textContent='Probing '+progKey+'  ·  '+Math.min(progDone+1,Math.max(progTotal,1))+'/'+progTotal+' probes';
+}
+function finishProgress(ok){
+  const w=$('#progWrap'); if(!w)return;
+  if(ok){ progShown=100; $('#progFill').style.width='100%'; $('#progPct').textContent='100%'; w.classList.add('done'); $('#progLabel').textContent='Scan complete \u2713'; }
+  else { $('#progLabel').textContent='Scan ended early'; }
+}
+
+async function preview(){
+  try{
+    const r=await fetch('/api/preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg())});
+    const d=await r.json(); if(!r.ok)throw new Error(d.error||'preview failed');
+    $('#previewCard').style.display='';
+    $('#cmdPreview').textContent=d.command;
+    $('#genPreview').textContent=JSON.stringify(d.generator,null,2);
+    $('#previewCard').scrollIntoView({behavior:'smooth',block:'nearest'});
+  }catch(e){toast(e.message,true);}
+}
+
+async function run(){
+  if(selected.size===0){toast('Select at least one probe first.',true);return;}
+  $('#console').innerHTML=''; $('#results').innerHTML='<div class="empty">Scan running… results appear when probes finish.</div>';
+  logOffset=0;
+  try{
+    const r=await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg())});
+    const d=await r.json(); if(!r.ok)throw new Error(d.error||'run failed');
+    currentJob=d.id; setStatus('run'); resetProgress(selected.size);
+    $('#runBtn').disabled=true; $('#stopBtn').disabled=false;
+    appendLines(['$ '+d.command,'']);
+    poll();
+  }catch(e){toast(e.message,true);setStatus('err');}
+}
+
+async function poll(){
+  if(!currentJob)return;
+  try{
+    const r=await fetch(`/api/logs?id=${currentJob}&offset=${logOffset}`);
+    const d=await r.json();
+    if(d.lines&&d.lines.length){appendLines(d.lines);updateProgress(d.lines);logOffset=d.offset;}
+    if(d.done){finish(d.returncode);return;}
+  }catch(e){/* keep polling */}
+  pollTimer=setTimeout(poll,900);
+}
+
+async function finish(rc){
+  $('#runBtn').disabled=false; $('#abBtn').disabled=false; $('#stopBtn').disabled=true;
+  setStatus(rc===0?'done':(rc===null?'stop':'err'));
+  finishProgress(rc===0);
+  const job=currentJob; currentJob=null;
+  if(abMode){
+    abMode=false;
+    appendLines(['', rc===0?'✔ A/B scan finished. Opening comparison…':`⚠ A/B scan exited with code ${rc}.`]);
+    lastJob=job; enableReports();
+    await renderABSummary(job);
+    window.open('/compare?id='+encodeURIComponent(job),'_blank');
+    return;
+  }
+  appendLines(['', rc===0?'✔ Scan finished (exit 0).':`⚠ garak exited with code ${rc}.`]);
+  lastJob=job; enableReports();
+  try{
+    const r=await fetch(`/api/report?id=${job}`); const d=await r.json();
+    renderResults(d.evals||[]);
+  }catch(e){/* ignore */}
+}
+
+function renderResults(evals){
+  const host=$('#results');
+  if(!evals.length){host.innerHTML='<div class="empty">No eval rows were parsed from the report. Check the console output above.</div>';return;}
+  let totPass=0,tot=0;
+  evals.forEach(e=>{totPass+=e.passed;tot+=e.total;});
+  const failRate=tot?1-(totPass/tot):0;
+  const score=Math.round((1-failRate)*100); // resilience score
+  const failPct=Math.round(failRate*100);
+  const probesTested=new Set(evals.map(e=>e.probe)).size;
+  const vulnRows=evals.filter(e=>e.passed<e.total).length;
+  let scoreColor=score>=85?'var(--green)':score>=60?'var(--yellow)':'var(--red)';
+  let verdict=score>=85?'Strong defenses':score>=60?'Some weaknesses found':'Highly vulnerable';
+
+  const rows=evals.slice().sort((a,b)=>(a.passed/a.total)-(b.passed/b.total)).map(e=>{
+    const pass=e.passed/e.total, fail=1-pass, fp=Math.round(fail*100);
+    let tag,cls,barc;
+    if(fail<=0.0001){tag='Pass';cls='t-pass';barc='var(--green)';}
+    else if(fail<0.34){tag='Low';cls='t-low';barc='var(--yellow)';}
+    else{tag='High';cls='t-high';barc='var(--red)';}
+    return `<div class="res-row">
+      <span class="res-tag ${cls}">${tag}</span>
+      <div class="pmeta"><div class="pname">${e.probe}</div><div class="pdet">detector: ${e.detector}</div></div>
+      <div class="bar"><i style="width:${fp}%;background:${barc}"></i></div>
+      <span class="res-stat">${e.passed}/${e.total} ok</span>
+    </div>`;
+  }).join('');
+
+  host.innerHTML=`
+    <div class="score-wrap">
+      <div class="gauge" style="background:conic-gradient(${scoreColor} ${score}%,var(--panel2) 0)">
+        <div class="inner"><div><div class="num" style="color:${scoreColor}">${score}</div><div class="lbl">Resilience</div></div></div>
+      </div>
+      <div class="score-meta">
+        <div class="big" style="color:${scoreColor}">${verdict}</div>
+        <div style="color:var(--muted);font-size:13px">${failPct}% of attack attempts succeeded against the target.</div>
+        <div class="summary-grid">
+          <div class="smini"><div class="v">${probesTested}</div><div class="k">Probes tested</div></div>
+          <div class="smini"><div class="v" style="color:var(--red)">${vulnRows}</div><div class="k">Findings</div></div>
+          <div class="smini"><div class="v">${tot}</div><div class="k">Total attempts</div></div>
+        </div>
+      </div>
+    </div>
+    <p class="subhd" style="margin:24px 0 12px">Per-probe breakdown (worst first)</p>
+    ${rows}`;
+}
+
+async function runAB(){
+  if(selected.size===0){toast('Select at least one probe first.',true);return;}
+  $('#console').innerHTML=''; $('#results').innerHTML='<div class="empty">Running baseline + guarded scans… the comparison opens automatically when both finish.</div>';
+  logOffset=0; abMode=true;
+  try{
+    const r=await fetch('/api/run_ab',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg())});
+    const d=await r.json(); if(!r.ok)throw new Error(d.error||'run failed');
+    currentJob=d.id; setStatus('run'); resetProgress(selected.size*2);
+    $('#runBtn').disabled=true; $('#abBtn').disabled=true; $('#stopBtn').disabled=false;
+    appendLines(['$ A/B guardrail scan started','  baseline target : '+d.uri,'  guarded proxy   : '+d.proxyUri,'']);
+    poll();
+  }catch(e){toast(e.message,true);setStatus('err');abMode=false;}
+}
+
+async function renderABSummary(job){
+  try{
+    const r=await fetch('/api/compare?id='+encodeURIComponent(job));
+    const d=await r.json();
+    const b=d.before||{}, a=d.after||{}, g=d.guard||{};
+    const col=s=>s>=85?'var(--green)':s>=60?'var(--yellow)':'var(--red)';
+    const dscore=d.delta_score||0;
+    const delta=(dscore>=0?'+':'')+dscore;
+    $('#results').innerHTML=`
+      <div class="score-wrap">
+        <div class="gauge" style="background:conic-gradient(${col(b.score)} ${b.score||0}%,var(--panel2) 0)">
+          <div class="inner"><div><div class="num" style="color:${col(b.score)}">${b.score||0}</div><div class="lbl">Before</div></div></div>
+        </div>
+        <div style="font-size:30px;color:var(--accent);font-weight:800;align-self:center">→</div>
+        <div class="gauge" style="background:conic-gradient(${col(a.score)} ${a.score||0}%,var(--panel2) 0)">
+          <div class="inner"><div><div class="num" style="color:${col(a.score)}">${a.score||0}</div><div class="lbl">After</div></div></div>
+        </div>
+        <div class="score-meta">
+          <div class="big" style="color:var(--accent)">Resilience ${delta} pts with SynAIpse Aegis</div>
+          <div style="color:var(--muted);font-size:13px">Grade ${b.grade||'—'} → ${a.grade||'—'}. The guardrail blocked ${g.blocked_input||0} attacks and redacted ${g.redacted_output||0} unsafe responses.</div>
+          <div class="summary-grid">
+            <div class="smini"><div class="v" style="color:var(--red)">${b.total_hits||0}</div><div class="k">Hits before</div></div>
+            <div class="smini"><div class="v" style="color:var(--green)">${a.total_hits||0}</div><div class="k">Hits after</div></div>
+            <div class="smini"><div class="v">${d.guard_interventions||0}</div><div class="k">Interventions</div></div>
+          </div>
+          <div class="actions"><button class="btn btn-primary" id="openCompare">Open full comparison ↗</button></div>
+        </div>
+      </div>`;
+    const oc=$('#openCompare'); if(oc) oc.addEventListener('click',()=>window.open('/compare?id='+encodeURIComponent(job),'_blank'));
+  }catch(e){ $('#results').innerHTML='<div class="empty">A/B scan complete. <a href="/compare?id='+encodeURIComponent(job)+'" target="_blank">Open comparison ↗</a></div>'; }
+}
+
+async function stop(){
+  if(!currentJob)return;
+  await fetch('/api/stop',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:currentJob})});
+  toast('Stop signal sent.');
+}
+
+function openReport(){ if(!lastJob){ toast('Run a scan first.',true); return; } window.open('/report?id='+encodeURIComponent(lastJob),'_blank'); }
+
+async function openHistory(){
+  const ov=$('#historyModal'), body=$('#histBody');
+  ov.classList.add('show');
+  body.innerHTML='<div class="empty">Loading…</div>';
+  try{
+    const r=await fetch('/api/history'); const list=await r.json();
+    if(!Array.isArray(list)||!list.length){body.innerHTML='<div class="empty">No previous scans yet. Run a scan to build history.</div>';return;}
+    body.innerHTML=list.map(h=>{
+      const sc=(h.score==null?'—':h.score);
+      const col=(h.score==null)?'var(--faint)':(h.score>=85?'var(--green)':h.score>=60?'var(--yellow)':'var(--red)');
+      const probes=(h.probe_count||0)+' probe'+((h.probe_count===1)?'':'s');
+      return `<div class="hist-row">
+        <div class="hist-score" style="color:${col};border-color:${col}">${sc}</div>
+        <div class="hist-meta">
+          <div class="hist-name">${(h.name||'Scan')}</div>
+          <div class="hist-sub">${h.time||''} · <span class="mono">${h.uri||''}</span></div>
+          <div class="hist-sub">${probes} · ${h.total_hits||0}/${h.total_attempts||0} hits · Grade ${h.grade||'—'}</div>
+        </div>
+        <button class="btn btn-ghost hist-open" data-path="${encodeURIComponent(h.reportPath||'')}">Open report</button>
+      </div>`;
+    }).join('');
+    body.querySelectorAll('.hist-open').forEach(b=>b.addEventListener('click',()=>{
+      const path=b.dataset.path;
+      if(path) window.open('/report?path='+path,'_blank');
+      else toast('Report file not found for this scan.',true);
+    }));
+  }catch(e){body.innerHTML='<div class="empty">Could not load scan history.</div>';}
+}
+
+// wire up
+$('#runBtn').addEventListener('click',run);
+$('#abBtn').addEventListener('click',runAB);
+$('#stopBtn').addEventListener('click',stop);
+$('#previewBtn').addEventListener('click',preview);
+$('#search').addEventListener('input',renderCats);
+$('#clearLog').addEventListener('click',()=>{$('#console').innerHTML='<span class="console-empty">Cleared.</span>';});
+$('#recOnly').addEventListener('click',()=>{recOnlyOn=!recOnlyOn;$('#recOnly').classList.toggle('on',recOnlyOn);renderCats();});
+$('#expandAll').addEventListener('click',()=>{document.querySelectorAll('.cat').forEach(c=>c.classList.add('open'));});
+$('#clearAll').addEventListener('click',()=>{selected.clear();renderCats();updateSel();});
+$('#navReport').addEventListener('click',openReport);
+$('#navHistory').addEventListener('click',openHistory);
+$('#histClose').addEventListener('click',()=>$('#historyModal').classList.remove('show'));
+$('#historyModal').addEventListener('click',e=>{if(e.target.id==='historyModal')$('#historyModal').classList.remove('show');});
+$('#navEmail').addEventListener('click',openEmail);
+$('#emailClose').addEventListener('click',()=>$('#emailModal').classList.remove('show'));
+$('#emailModal').addEventListener('click',e=>{if(e.target.id==='emailModal')$('#emailModal').classList.remove('show');});
+$('#emailSend').addEventListener('click',sendEmail);
+$('#dlPdf').addEventListener('click',()=>dl('pdf'));
+$('#dlHtml').addEventListener('click',()=>dl('html'));
+$('#navReplay').addEventListener('click',openReplay);
+function navScrollTo(id){ const el=document.getElementById(id); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); }
+function enableReports(){ ['navReport','navReplay','navEmail'].forEach(id=>{const e=document.getElementById(id); if(e) e.classList.remove('disabled');}); }
+document.querySelectorAll('.nav-item[data-scroll]').forEach(it=>{ it.addEventListener('click',()=>{ document.querySelectorAll('.nav-item[data-scroll]').forEach(x=>x.classList.remove('active')); it.classList.add('active'); navScrollTo(it.dataset.scroll); }); });
+$('#replayClose').addEventListener('click',closeReplay);
+$('#replayModal').addEventListener('click',e=>{if(e.target.id==='replayModal')closeReplay();});
+$('#rpPrev').addEventListener('click',()=>showBreach(rpIdx-1));
+$('#rpNext').addEventListener('click',()=>showBreach(rpIdx+1));
+$('#rpReplay').addEventListener('click',()=>playBreach());
+
+function openEmail(){ if(!lastJob){ toast('Run a scan first.',true); return; } $('#emailMsg').textContent=''; $('#emailTo').value=$('#emailTo').value||''; $('#emailModal').classList.add('show'); }
+function dl(fmt){ if(!lastJob){ toast('Run a scan first.',true); return; } window.open('/api/report_file?fmt='+fmt+'&id='+encodeURIComponent(lastJob),'_blank'); }
+
+/* ---- Exploit Replay Theater ---- */
+let rpData=null, rpIdx=0, rpTimers=[];
+function rpClear(){ rpTimers.forEach(t=>clearTimeout(t)); rpTimers=[]; }
+function rpEsc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+const RP_SECRETS=[/t5b_live_sk_[A-Za-z0-9_]+/g,/T5B-ADMIN-RESET-[A-Za-z0-9]+/g,/db_p@ss_2024_secret/g,/cache_k3y_do_not_share/g,/AKIA[A-Z0-9_]+/g,/synaipse_admin/g];
+function rpHighlight(s){ let h=rpEsc(s); RP_SECRETS.forEach(re=>{ h=h.replace(re,m=>'<span class="rp-leak">'+m+'</span>'); }); return h; }
+async function openReplay(){
+  if(!lastJob){ toast('Run a scan first.',true); return; }
+  $('#replayModal').classList.add('show');
+  $('#rpStage').style.display='none'; $('#rpControls').style.display='none';
+  $('#rpEmpty').style.display=''; $('#rpEmpty').innerHTML='<div style="font-size:30px;margin-bottom:8px">🎬</div><div>Loading replay…</div>';
+  try{
+    const r=await fetch('/api/replay?id='+encodeURIComponent(lastJob));
+    const d=await r.json();
+    if(!r.ok){ rpShowEmpty({msg:(d&&d.error)||'Could not load replay.'}); return; }
+    rpData=d; rpIdx=0; $('#rpModel').textContent=d.model||'model';
+    if(!d.breaches||!d.breaches.length){ rpShowEmpty(d); return; }
+    $('#rpEmpty').style.display='none'; $('#rpStage').style.display=''; $('#rpControls').style.display='';
+    showBreach(0);
+  }catch(e){ rpShowEmpty({msg:'Replay failed: '+e}); }
+}
+function closeReplay(){ rpClear(); $('#replayModal').classList.remove('show'); }
+function rpShowEmpty(d){
+  rpClear(); $('#rpStage').style.display='none'; $('#rpControls').style.display='none'; $('#rpEmpty').style.display='';
+  const msg=d.msg?rpEsc(d.msg):('Every attack in this scan was blocked or refused by <b>'+rpEsc(d.model||'the model')+'</b>. There is no successful breach to reenact.');
+  const icon=d.msg?'⚠':'🛡'; const col=d.msg?'#ffb454':'#3cd296'; const head=d.msg?'Nothing to replay':'No breach to replay';
+  $('#rpEmpty').innerHTML='<div style="font-size:40px;margin-bottom:10px">'+icon+'</div><div style="font-size:18px;color:'+col+';font-weight:600">'+head+'</div><div style="margin-top:8px;max-width:440px;margin-left:auto;margin-right:auto">'+msg+'</div>';
+}
+function typeInto(el,text,speed,done){
+  el.innerHTML=''; let i=0; const plain=text||'';
+  (function step(){
+    i+=Math.max(1,Math.round(plain.length/90));
+    if(i>=plain.length){ el.innerHTML=rpHighlight(plain); if(done)done(); return; }
+    el.innerHTML=rpEsc(plain.slice(0,i))+'<span class="caret">&nbsp;</span>';
+    rpTimers.push(setTimeout(step,speed));
+  })();
+}
+function showBreach(i){ if(!rpData||!rpData.breaches.length)return; rpIdx=(i+rpData.breaches.length)%rpData.breaches.length; playBreach(); }
+function playBreach(){
+  rpClear();
+  const b=rpData.breaches[rpIdx];
+  $('#rpSev').textContent=(b.severity||'HIT').toUpperCase();
+  $('#rpTitle').textContent=b.technique||b.probe||b.family;
+  $('#rpCount').textContent='Breach '+(rpIdx+1)+' of '+rpData.breaches.length;
+  const tags=[]; if(b.owasp)tags.push(b.owasp+(b.owasp_name?' · '+b.owasp_name:'')); if(b.atlas_id)tags.push('MITRE ATLAS '+b.atlas_id); if(b.tactic)tags.push(b.tactic); tags.push('Success '+(b.hit_pct||0)+'% ('+(b.hits||0)+'/'+(b.total||0)+')');
+  $('#rpTags').innerHTML=tags.map(t=>'<span>'+rpEsc(t)+'</span>').join('');
+  document.querySelectorAll('#rpStage .rp-row,#rpArrow,#rpVerdict').forEach(e=>e.classList.remove('in'));
+  $('#rpPayload').innerHTML=''; $('#rpResponse').innerHTML=''; $('#rpThinking').classList.add('hide');
+  const att=document.querySelector('.rp-attacker'), vic=document.querySelector('.rp-victim');
+  rpTimers.push(setTimeout(function(){
+    att.classList.add('in');
+    typeInto($('#rpPayload'),b.payload||'(no attack prompt captured)',16,function(){
+      rpTimers.push(setTimeout(function(){
+        $('#rpArrow').classList.add('in');
+        rpTimers.push(setTimeout(function(){
+          vic.classList.add('in'); $('#rpThinking').classList.remove('hide');
+          rpTimers.push(setTimeout(function(){
+            $('#rpThinking').classList.add('hide');
+            typeInto($('#rpResponse'),b.response||'(no model response captured)',14,function(){
+              const v=$('#rpVerdict'); v.classList.remove('safe');
+              $('#rpVerdictBadge').textContent='BREACHED';
+              $('#rpVerdictText').textContent='The model complied — '+(b.goal||'unsafe behaviour was elicited')+'.';
+              $('#rpFix').textContent=b.fix||'';
+              rpTimers.push(setTimeout(function(){ v.classList.add('in'); },150));
+            });
+          },900));
+        },650));
+      },420));
+    });
+  },150));
+}
+async function sendEmail(){
+  const to=$('#emailTo').value.trim();
+  const m=$('#emailMsg'); m.textContent='Sending…';
+  try{
+    const r=await fetch('/api/email_report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:lastJob,to})});
+    const d=await r.json();
+    if(d.error){ m.textContent='⚠ '+d.error; toast(d.error,true); return; }
+    m.textContent=(d.emailed?'✔ ':'ℹ ')+(d.message||'');
+    if(d.emailed){ toast('Report emailed to '+(d.to||to)); }
+    else { toast('Report saved & ready to download.'); }
+  }catch(e){ m.textContent='⚠ '+e; toast('Request failed',true); }
+}
+
+
+
+/* Local demo login: admin / admin. Does not touch scanner backend. */
+(function(){
+  const ov=document.getElementById('loginOverlay');
+  const u=document.getElementById('loginUser');
+  const p=document.getElementById('loginPass');
+  const e=document.getElementById('loginError');
+  const b=document.getElementById('loginSubmit');
+  function go(){
+    if((u.value||'').trim()==='admin' && (p.value||'').trim()==='admin'){
+      ov.style.display='none';
+    }else{
+      e.style.display='block';
+    }
+  }
+  if(b){b.addEventListener('click',go);[u,p].forEach(x=>x&&x.addEventListener('keydown',ev=>{if(ev.key==='Enter')go();}));}
+})();
+
+
+
+/* Home page -> admin login -> existing scanner dashboard */
+(function(){
+  const home=document.getElementById('homePage');
+  const login=document.getElementById('loginOverlay');
+  document.querySelectorAll('[data-open-login]').forEach(btn=>btn.addEventListener('click',()=>{ if(login) login.style.display='grid'; }));
+  const oldHideLogin=()=>{ if(home) home.style.display='none'; };
+  const submit=document.getElementById('loginSubmit');
+  if(submit){ submit.addEventListener('click',()=>{ setTimeout(()=>{ if(login && login.style.display==='none') oldHideLogin(); },0); }); }
+  ['loginUser','loginPass'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('keydown',ev=>{ if(ev.key==='Enter') setTimeout(()=>{ if(login && login.style.display==='none') oldHideLogin(); },0); }); });
+})();
+
+renderCats(); updateSel(); updateUri();
+</script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SynAIpse Scanner — Scan History</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0e1a;--panel:#0e1426;--panel2:#121a30;--line:#1e2942;--txt:#e6ebf5;
+  --muted:#8a97b3;--cyan:#22d3ee;--red:#ef4444;--orange:#f59e0b;--yellow:#eab308;--green:#22c55e;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:radial-gradient(1200px 600px at 80% -10%,#13203f 0%,var(--bg) 60%);color:var(--txt);font-family:'Hanken Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh}
+.topbar{display:flex;align-items:center;gap:14px;padding:16px 28px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(10,14,26,.82);backdrop-filter:blur(10px);z-index:5}
+.brand{font-family:'Fraunces',serif;font-weight:700;font-size:18px;letter-spacing:.3px}
+.brand .mk{color:var(--cyan)}
+.spacer{flex:1}
+.btn{font:inherit;font-weight:600;font-size:13px;border:1px solid var(--line);background:var(--panel2);color:var(--txt);padding:9px 16px;border-radius:10px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:7px}
+.btn:hover{border-color:#33457a}
+.wrap{max-width:1080px;margin:0 auto;padding:34px 28px 80px}
+h1{font-family:'Fraunces',serif;font-weight:600;font-size:30px;margin:0 0 4px}
+.sub{color:var(--muted);font-size:14px;margin:0 0 28px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:30px}
+.stat{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:14px;padding:18px}
+.stat .v{font-family:'Fraunces',serif;font-weight:700;font-size:26px}
+.stat .k{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.7px;margin-top:4px}
+.row{display:flex;align-items:center;gap:18px;background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:12px;transition:border-color .15s}
+.row:hover{border-color:#33457a}
+.score{flex:none;width:58px;height:58px;border-radius:13px;border:2px solid var(--line);display:grid;place-items:center;font-family:'Fraunces',serif;font-weight:700;font-size:22px}
+.score .g{font-size:10px;font-weight:600;color:var(--muted);margin-top:-2px}
+.meta{flex:1;min-width:0}
+.name{font-weight:700;font-size:15.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.line{color:var(--muted);font-size:12.5px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.line .mono{font-family:'JetBrains Mono',monospace;font-size:11.5px}
+.chips{margin-top:7px;display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:10.5px;font-family:'JetBrains Mono',monospace;color:var(--muted);background:#0c142b;border:1px solid var(--line);border-radius:6px;padding:2px 7px}
+.open{flex:none}
+.empty{text-align:center;color:var(--muted);padding:80px 20px}
+.empty .big{font-family:'Fraunces',serif;font-size:22px;color:var(--txt);margin-bottom:8px}
+.foot{color:var(--muted);font-size:11.5px;text-align:center;margin-top:34px}
+@media(max-width:620px){.stats{grid-template-columns:repeat(2,1fr)}.row{flex-wrap:wrap}.open{width:100%}}
+
+
+/* === SynAIpse professional polish layer === */
+:root{--syn-bg:#041210;--syn-panel:#08231f;--syn-panel2:#0b2b27;--syn-line:#16443f;--syn-lime:#c7ff4d;--syn-green:#00c983;--syn-red:#ff1654;--syn-amber:#ffbd2e;--syn-text:#e8fffa;--syn-muted:#8db1ab;--syn-shadow:0 22px 70px rgba(0,0,0,.32)}
+body{background:radial-gradient(circle at 12% 0%,rgba(199,255,77,.10),transparent 32%),radial-gradient(circle at 92% 8%,rgba(0,201,131,.10),transparent 25%),linear-gradient(180deg,#041210,#061918 45%,#030d0c)!important;color:var(--syn-text)!important;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif!important}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(199,255,77,.028) 1px,transparent 1px),linear-gradient(90deg,rgba(199,255,77,.022) 1px,transparent 1px);background-size:38px 38px;opacity:.65;mask-image:linear-gradient(to bottom,black,transparent 96%);z-index:-1}
+.header,.topbar,header{background:rgba(5,24,23,.76)!important;border:1px solid rgba(160,255,210,.12)!important;border-radius:18px!important;backdrop-filter:blur(18px);box-shadow:0 16px 45px rgba(0,0,0,.18)}
+.panel,.card,.section,.finding,.bar-row,details{background:rgba(8,35,32,.86)!important;border-color:var(--syn-line)!important;box-shadow:var(--syn-shadow)!important;border-radius:12px!important}
+.section-head,.section-title,h1,h2,h3,h4{color:#eafffa!important;letter-spacing:-.025em}.section-num{color:var(--syn-lime)!important}.muted,.sub,.small,.k,.bar-label.a,p{color:var(--syn-muted)!important}.pill{border-radius:999px!important}.sev-CRITICAL,.sev-HIGH,.prio-CRITICAL,.prio-HIGH{background:rgba(255,22,84,.14)!important;color:#ff9bb1!important}.sev-MEDIUM,.prio-MEDIUM{background:rgba(255,189,46,.14)!important;color:#ffd172!important}.sev-LOW,.sev-PASS,.prio-LOW{background:rgba(0,201,131,.15)!important;color:#4dffb7!important}.stat,.codeblk,pre,table{background:#061b19!important;border-color:var(--syn-line)!important;border-radius:10px!important}th{color:#9fc6c0!important}td{border-color:rgba(22,68,63,.8)!important}.btn,button{border-radius:10px!important}.btn-primary,#print{background:linear-gradient(135deg,var(--syn-lime),var(--syn-green))!important;color:#041210!important;border:0!important;font-weight:800!important}.bar-fill{background:linear-gradient(90deg,var(--syn-red),var(--syn-amber),var(--syn-green))!important}.resp-hit{border-color:rgba(255,22,84,.35)!important}
+@media print{body{background:#fff!important;color:#111!important}body:before{display:none}.panel,.card,.section,.finding{box-shadow:none!important}}
+
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand"><span class="mk">◆</span> SynAIpse Scanner</div>
+  <div class="spacer"></div>
+  <a class="btn" href="/">← Back to scanner</a>
+  <a class="btn" href="javascript:location.reload()">↻ Refresh</a>
+</div>
+<div class="wrap">
+  <h1>Scan History</h1>
+  <p class="sub">Every completed garak scan, newest first. Open any run to view its full detailed report.</p>
+  <div id="root"></div>
+  <div class="foot">SynAIpse Scanner · LLM Security Assessment Console</div>
+</div>
+<script>
+const HISTORY = __HISTORY_DATA__;
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function col(score){if(score==null)return 'var(--muted)';if(score>=85)return 'var(--green)';if(score>=70)return 'var(--cyan)';if(score>=50)return 'var(--yellow)';if(score>=30)return 'var(--orange)';return 'var(--red)';}
+function render(){
+  const root=document.getElementById('root');
+  if(!Array.isArray(HISTORY)||!HISTORY.length){
+    root.innerHTML='<div class="empty"><div class="big">No scans yet</div>Run a scan from the scanner and it will appear here automatically.</div>';
+    return;
+  }
+  const scored=HISTORY.filter(h=>h.score!=null);
+  const avg=scored.length?Math.round(scored.reduce((a,h)=>a+h.score,0)/scored.length):'—';
+  const att=HISTORY.reduce((a,h)=>a+(h.total_attempts||0),0);
+  const hits=HISTORY.reduce((a,h)=>a+(h.total_hits||0),0);
+  const stats=`<div class="stats">
+    <div class="stat"><div class="v">${HISTORY.length}</div><div class="k">Total scans</div></div>
+    <div class="stat"><div class="v" style="color:${col(avg==='—'?null:avg)}">${avg}</div><div class="k">Avg resilience</div></div>
+    <div class="stat"><div class="v">${att}</div><div class="k">Total attempts</div></div>
+    <div class="stat"><div class="v" style="color:var(--red)">${hits}</div><div class="k">Total hits</div></div>
+  </div>`;
+  const rows=HISTORY.map(h=>{
+    const c=col(h.score);
+    const probes=(h.probes||[]).slice(0,8).map(p=>`<span class="chip">${esc(p)}</span>`).join('');
+    const more=(h.probes||[]).length>8?`<span class="chip">+${h.probes.length-8} more</span>`:'';
+    const link=h.reportPath?('/report?path='+encodeURIComponent(h.reportPath)):(h.id?('/report?id='+encodeURIComponent(h.id)):'');
+    const openBtn=link?`<a class="btn open" href="${link}" target="_blank">Open report ↗</a>`:`<span class="btn open" style="opacity:.5;cursor:default">No report file</span>`;
+    return `<div class="row">
+      <div class="score" style="color:${c};border-color:${c}">${h.score==null?'—':h.score}<span class="g">${esc(h.grade||'')}</span></div>
+      <div class="meta">
+        <div class="name">${esc(h.name||'Scan')}</div>
+        <div class="line">${esc(h.time||'')} · <span class="mono">${esc(h.uri||'')}</span></div>
+        <div class="line">${(h.probe_count||0)} probe(s) · ${h.total_hits||0}/${h.total_attempts||0} hits${h.generations?(' · '+esc(h.generations)+' generations'):''}</div>
+        <div class="chips">${probes}${more}</div>
+      </div>
+      ${openBtn}
+    </div>`;
+  }).join('');
+  root.innerHTML=stats+rows;
+}
+render();
+</script>
+</body>
+</html>
