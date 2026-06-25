@@ -1,3 +1,5 @@
+<img width="1905" height="916" alt="image" src="https://github.com/user-attachments/assets/708799d7-1de5-41ce-9023-533745f8dd68" />
+
 # SynAIpse VulnLab
 
 **An end‑to‑end LLM‑security demonstration lab.** It pairs a *deliberately vulnerable* AI banking
